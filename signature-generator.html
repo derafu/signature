@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Signature - Library for digital signatures</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-9">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-signaturegenerator-documentation" href="signature-generator.html#content-signaturegenerator-documentation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>SignatureGenerator Documentation</h1>
+<p>The <code>SignatureGenerator</code> class is responsible for creating digital signatures, both for general data and specifically for XML documents according to the XML-DSIG standard.</p>
+<ul class="table-of-contents">
+<li><a href="signature-generator.html#content-overview">Overview</a></li>
+<li><a href="signature-generator.html#content-basic-usage">Basic Usage</a>
+<ul>
+<li><a href="signature-generator.html#content-initialization">Initialization</a></li>
+<li><a href="signature-generator.html#content-signing-data">Signing Data</a></li>
+<li><a href="signature-generator.html#content-signing-xml-documents">Signing XML Documents</a></li>
+<li><a href="signature-generator.html#content-calculating-digest-values">Calculating Digest Values</a></li>
+</ul>
+</li>
+<li><a href="signature-generator.html#content-api-reference">API Reference</a>
+<ul>
+<li><a href="signature-generator.html#content-data-signing">Data Signing</a></li>
+<li><a href="signature-generator.html#content-xml-signing">XML Signing</a></li>
+<li><a href="signature-generator.html#content-digest-value-generation">Digest Value Generation</a></li>
+</ul>
+</li>
+<li><a href="signature-generator.html#content-implementation-details">Implementation Details</a>
+<ul>
+<li><a href="signature-generator.html#content-digital-signature-process">Digital Signature Process</a></li>
+<li><a href="signature-generator.html#content-xml-signature-process">XML Signature Process</a></li>
+<li><a href="signature-generator.html#content-canonicalization">Canonicalization</a></li>
+<li><a href="signature-generator.html#content-reference-handling">Reference Handling</a></li>
+<li><a href="signature-generator.html#content-signature-node-creation">Signature Node Creation</a></li>
+</ul>
+</li>
+</ul>
+<h2><a id="content-overview" href="signature-generator.html#content-overview" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Overview</h2>
+<p>The <code>SignatureGenerator</code> implements the <code>SignatureGeneratorInterface</code> and provides mechanisms to:</p>
+<ol>
+<li>Sign any data using a private key.</li>
+<li>Sign XML documents using a certificate.</li>
+<li>Calculate digest values for XML documents or specific elements within them.</li>
+</ol>
+<p>This class is a core component of the Derafu Signature library and is typically used through the <code>SignatureService</code> facade.</p>
+<h2><a id="content-basic-usage" href="signature-generator.html#content-basic-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Usage</h2>
+<h3><a id="content-initialization" href="signature-generator.html#content-initialization" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Initialization</h3>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Signature\Service\SignatureGenerator;
+use Derafu\Xml\Service\XmlDecoder;
+use Derafu\Xml\Service\XmlEncoder;
+use Derafu\Xml\Service\XmlService;
+use Derafu\Xml\Service\XmlValidator;
+
+// Initialize required XML services.
+$xmlEncoder = new XmlEncoder();
+$xmlDecoder = new XmlDecoder();
+$xmlValidator = new XmlValidator();
+$xmlService = new XmlService($xmlEncoder, $xmlDecoder, $xmlValidator);
+
+// Create the signature generator.
+$generator = new SignatureGenerator($xmlService);
+</code></pre>
+<h3><a id="content-signing-data" href="signature-generator.html#content-signing-data" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signing Data</h3>
+<pre><code class="line-numbers match-braces language-php">// Sign data with a private key.
+$data = 'Data to be signed';
+$signature = $generator-&gt;sign($data, $privateKey);
+
+// Optional: Specify a different signature algorithm.
+$signature = $generator-&gt;sign($data, $privateKey, OPENSSL_ALGO_SHA256);
+</code></pre>
+<h3><a id="content-signing-xml-documents" href="signature-generator.html#content-signing-xml-documents" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signing XML Documents</h3>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Certificate\Service\CertificateLoader;
+
+// Load a certificate.
+$loader = new CertificateLoader();
+$certificate = $loader-&gt;loadFromFile('/path/to/certificate.p12', 'password');
+
+// Sign an XML string.
+$xmlString = '&lt;root&gt;&lt;element&gt;data&lt;/element&gt;&lt;/root&gt;';
+$signedXml = $generator-&gt;signXml($xmlString, $certificate);
+
+// Sign a specific element in the XML (identified by ID).
+$xmlWithIds = '&lt;root&gt;&lt;element ID=&quot;myElement&quot;&gt;data&lt;/element&gt;&lt;/root&gt;';
+$signedXml = $generator-&gt;signXml($xmlWithIds, $certificate, 'myElement');
+</code></pre>
+<h3><a id="content-calculating-digest-values" href="signature-generator.html#content-calculating-digest-values" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Calculating Digest Values</h3>
+<pre><code class="line-numbers match-braces language-php">// Create an XML document.
+$xmlDoc = new \Derafu\Xml\XmlDocument();
+$xmlDoc-&gt;loadXml('&lt;root&gt;&lt;element ID=&quot;myElement&quot;&gt;data&lt;/element&gt;&lt;/root&gt;');
+
+// Calculate digest value for the entire document.
+$digestValue = $generator-&gt;generateXmlDigestValue($xmlDoc);
+
+// Calculate digest value for a specific element.
+$digestValue = $generator-&gt;generateXmlDigestValue($xmlDoc, 'myElement');
+</code></pre>
+<h2><a id="content-api-reference" href="signature-generator.html#content-api-reference" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Reference</h2>
+<h3><a id="content-data-signing" href="signature-generator.html#content-data-signing" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Data Signing</h3>
+<pre><code class="line-numbers match-braces language-php">/**
+ * Sign the provided data using a private key.
+ *
+ * @param string $data Data to be signed.
+ * @param string $privateKey Private key to be used for signing.
+ * @param string|int $signatureAlgorithm Algorithm to be used for signing (default SHA1).
+ * @return string Digital signature in base64.
+ * @throws SignatureException If the signing operation fails.
+ */
+public function sign(
+    string $data,
+    string $privateKey,
+    string|int $signatureAlgorithm = OPENSSL_ALGO_SHA1
+): string;
+</code></pre>
+<h3><a id="content-xml-signing" href="signature-generator.html#content-xml-signing" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML Signing</h3>
+<pre><code class="line-numbers match-braces language-php">/**
+ * Sign an XML document using RSA and SHA1.
+ *
+ * @param XmlDocumentInterface|string $xml XML document to be signed.
+ * @param CertificateInterface $certificate Digital certificate to be used for signing.
+ * @param ?string $reference Reference to which the signature is made. If not
+ * specified, the digest of the entire XML document will be signed.
+ * @return string String XML with the generated signature included in the
+ * &quot;Signature&quot; tag at the end of the XML (last element within the root node).
+ * @throws SignatureException If any problem occurs while signing.
+ */
+public function signXml(
+    XmlDocumentInterface|string $xml,
+    CertificateInterface $certificate,
+    ?string $reference = null
+): string;
+</code></pre>
+<h3><a id="content-digest-value-generation" href="signature-generator.html#content-digest-value-generation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Digest Value Generation</h3>
+<pre><code class="line-numbers match-braces language-php">/**
+ * Generate the SHA1 (&quot;DigestValue&quot;) of a node of the XML with a certain
+ * reference. This can be used later to generate the XML signature.
+ *
+ * If no reference is specified, the &quot;DigestValue&quot; will be calculated over the
+ * entire XML (root node).
+ *
+ * @param XmlDocumentInterface $doc XML document to be signed.
+ * @param ?string $reference Reference to which the signature is made.
+ * @return string Data of the XML that must be digested.
+ * @throws XmlException If the reference is not found in the XML.
+ */
+public function generateXmlDigestValue(
+    XmlDocumentInterface $doc,
+    ?string $reference = null
+): string;
+</code></pre>
+<h2><a id="content-implementation-details" href="signature-generator.html#content-implementation-details" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Implementation Details</h2>
+<h3><a id="content-digital-signature-process" href="signature-generator.html#content-digital-signature-process" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Digital Signature Process</h3>
+<p>For general data, the signing process is straightforward:</p>
+<ol>
+<li>The data is signed using the private key and the specified algorithm.</li>
+<li>The resulting binary signature is base64-encoded.</li>
+<li>The base64-encoded signature is returned.</li>
+</ol>
+<h3><a id="content-xml-signature-process" href="signature-generator.html#content-xml-signature-process" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML Signature Process</h3>
+<p>For XML documents, the signing process follows the XML-DSIG standard:</p>
+<ol>
+<li>The XML document is loaded and parsed.</li>
+<li>If a reference is provided, the referenced element is located.</li>
+<li>The digest value (SHA1 hash) of the canonicalized (C14N) content is calculated.</li>
+<li>A <code>Signature</code> node is created with the digest value and certificate information.</li>
+<li>The <code>SignedInfo</code> element of the signature is canonicalized.</li>
+<li>The canonicalized <code>SignedInfo</code> is signed using the certificate’s private key.</li>
+<li>The signature value is added to the <code>SignatureValue</code> element.</li>
+<li>The complete signature node is added to the XML document.</li>
+<li>The signed XML document is returned.</li>
+</ol>
+<h3><a id="content-canonicalization" href="signature-generator.html#content-canonicalization" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Canonicalization</h3>
+<p>The class uses the <code>C14NWithIso88591Encoding</code> method for canonicalization, which:</p>
+<ol>
+<li>Applies XML canonicalization (C14N) according to the W3C standard.</li>
+<li>Converts the result to ISO-8859-1 encoding.</li>
+<li>Ensures consistent representation across different systems.</li>
+</ol>
+<p>This process is crucial for ensuring that the same signature is generated regardless of the XML document’s formatting or encoding.</p>
+<h3><a id="content-reference-handling" href="signature-generator.html#content-reference-handling" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Reference Handling</h3>
+<p>When a reference is provided:</p>
+<ol>
+<li>The reference must be an ID attribute value in the XML document.</li>
+<li>The digest is calculated only for the referenced element.</li>
+<li>The signature’s <code>Reference</code> element includes a URI attribute (<code>#elementId</code>).</li>
+<li>The transform algorithm is set to standard C14N.</li>
+</ol>
+<p>When no reference is provided:</p>
+<ol>
+<li>The digest is calculated for the entire document (excluding any existing signature).</li>
+<li>The signature’s <code>Reference</code> element has an empty URI attribute.</li>
+<li>The transform algorithm is set to “enveloped signature transformation”.</li>
+</ol>
+<h3><a id="content-signature-node-creation" href="signature-generator.html#content-signature-node-creation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signature Node Creation</h3>
+<p>The class creates a <code>Signature</code> node with the following components:</p>
+<ol>
+<li>
+<p><code>SignedInfo</code>: Contains information about what data was signed.</p>
+<ul>
+<li><code>CanonicalizationMethod</code>: Specifies the C14N algorithm.</li>
+<li><code>SignatureMethod</code>: Specifies RSA-SHA1.</li>
+<li><code>Reference</code>: Points to the signed content and includes the digest value.</li>
+</ul>
+</li>
+<li>
+<p><code>SignatureValue</code>: Contains the actual signature of the <code>SignedInfo</code> element.</p>
+</li>
+<li>
+<p><code>KeyInfo</code>: Contains information about the certificate used for signing.</p>
+<ul>
+<li><code>KeyValue/RSAKeyValue</code>: Contains the modulus and exponent from the certificate.</li>
+<li><code>X509Data/X509Certificate</code>: Contains the certificate itself.</li>
+</ul>
+</li>
+</ol>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/signature</span>
+                            </div>
+                        </li>
+                        <a href="index.html" class="list-group-item list-group-item-action ">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                            <div class="fw-bold">Docs</div>
+                            <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+                        <a href="signature-class.html" class="list-group-item list-group-item-action ">
+                            Signature Class
+                        </a>
+                        <a href="signature-generator.html" class="list-group-item list-group-item-action active">
+                            Signature Generator
+                        </a>
+                        <a href="signature-validator.html" class="list-group-item list-group-item-action ">
+                            Signature Validator
+                        </a>
+                        <a href="signature-service.html" class="list-group-item list-group-item-action ">
+                            Signature Service
+                        </a>
+                        <a href="xml-dsig-standard.html" class="list-group-item list-group-item-action ">
+                            XML-DSIG Standard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
+    </body>
+</html>

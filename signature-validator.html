@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Signature - Library for digital signatures</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-9">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-signaturevalidator-documentation" href="signature-validator.html#content-signaturevalidator-documentation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>SignatureValidator Documentation</h1>
+<p>The <code>SignatureValidator</code> class is responsible for validating digital signatures, both for general data and specifically for XML documents that follow the XML-DSIG standard.</p>
+<ul class="table-of-contents">
+<li><a href="signature-validator.html#content-overview">Overview</a></li>
+<li><a href="signature-validator.html#content-basic-usage">Basic Usage</a>
+<ul>
+<li><a href="signature-validator.html#content-initialization">Initialization</a></li>
+<li><a href="signature-validator.html#content-validating-data-signatures">Validating Data Signatures</a></li>
+<li><a href="signature-validator.html#content-validating-xml-signatures">Validating XML Signatures</a></li>
+<li><a href="signature-validator.html#content-working-with-signature-nodes">Working with Signature Nodes</a></li>
+<li><a href="signature-validator.html#content-detailed-xml-signature-validation">Detailed XML Signature Validation</a></li>
+</ul>
+</li>
+<li><a href="signature-validator.html#content-api-reference">API Reference</a>
+<ul>
+<li><a href="signature-validator.html#content-data-signature-validation">Data Signature Validation</a></li>
+<li><a href="signature-validator.html#content-xml-signature-validation">XML Signature Validation</a></li>
+<li><a href="signature-validator.html#content-signature-node-handling">Signature Node Handling</a></li>
+<li><a href="signature-validator.html#content-detailed-validation-methods">Detailed Validation Methods</a></li>
+</ul>
+</li>
+<li><a href="signature-validator.html#content-implementation-details">Implementation Details</a>
+<ul>
+<li><a href="signature-validator.html#content-signature-validation-process">Signature Validation Process</a></li>
+<li><a href="signature-validator.html#content-xml-signature-validation-process">XML Signature Validation Process</a></li>
+<li><a href="signature-validator.html#content-digest-value-validation">Digest Value Validation</a></li>
+<li><a href="signature-validator.html#content-signature-value-validation">Signature Value Validation</a></li>
+<li><a href="signature-validator.html#content-error-handling">Error Handling</a></li>
+<li><a href="signature-validator.html#content-dependency-on-signaturegenerator">Dependency on SignatureGenerator</a></li>
+<li><a href="signature-validator.html#content-xml-handling">XML Handling</a></li>
+</ul>
+</li>
+</ul>
+<h2><a id="content-overview" href="signature-validator.html#content-overview" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Overview</h2>
+<p>The <code>SignatureValidator</code> implements the <code>SignatureValidatorInterface</code> and provides mechanisms to:</p>
+<ol>
+<li>Validate signatures for any data against a public key.</li>
+<li>Validate signatures in XML documents.</li>
+<li>Extract and parse signature nodes from XML documents.</li>
+<li>Validate specific aspects of XML signatures (digest values and signature values).</li>
+</ol>
+<p>This class is a core component of the Derafu Signature library and is typically used through the <code>SignatureService</code> facade.</p>
+<h2><a id="content-basic-usage" href="signature-validator.html#content-basic-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Usage</h2>
+<h3><a id="content-initialization" href="signature-validator.html#content-initialization" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Initialization</h3>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Signature\Service\SignatureGenerator;
+use Derafu\Signature\Service\SignatureValidator;
+use Derafu\Xml\Service\XmlDecoder;
+use Derafu\Xml\Service\XmlEncoder;
+use Derafu\Xml\Service\XmlService;
+use Derafu\Xml\Service\XmlValidator;
+
+// Initialize required XML services.
+$xmlEncoder = new XmlEncoder();
+$xmlDecoder = new XmlDecoder();
+$xmlValidator = new XmlValidator();
+$xmlService = new XmlService($xmlEncoder, $xmlDecoder, $xmlValidator);
+
+// Create the signature generator (needed by validator).
+$generator = new SignatureGenerator($xmlService);
+
+// Create the signature validator.
+$validator = new SignatureValidator($generator, $xmlService);
+</code></pre>
+<h3><a id="content-validating-data-signatures" href="signature-validator.html#content-validating-data-signatures" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Validating Data Signatures</h3>
+<pre><code class="line-numbers match-braces language-php">// Validate a signature for some data.
+$data = 'Data that was signed';
+$signature = 'base64EncodedSignature';
+$publicKey = 'publicKeyPEM';
+
+$isValid = $validator-&gt;validate($data, $signature, $publicKey);
+
+// Optional: Specify the signature algorithm.
+$isValid = $validator-&gt;validate($data, $signature, $publicKey, OPENSSL_ALGO_SHA256);
+
+if ($isValid) {
+    echo &quot;Signature is valid!&quot;;
+} else {
+    echo &quot;Signature is invalid!&quot;;
+}
+</code></pre>
+<h3><a id="content-validating-xml-signatures" href="signature-validator.html#content-validating-xml-signatures" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Validating XML Signatures</h3>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Signature\Exception\SignatureException;
+
+// Validate an XML document with a signature.
+$signedXml = file_get_contents('signed_document.xml');
+
+try {
+    $validator-&gt;validateXml($signedXml);
+    echo &quot;XML signature is valid!&quot;;
+} catch (SignatureException $e) {
+    echo &quot;XML signature validation failed: &quot; . $e-&gt;getMessage();
+}
+</code></pre>
+<h3><a id="content-working-with-signature-nodes" href="signature-validator.html#content-working-with-signature-nodes" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Working with Signature Nodes</h3>
+<pre><code class="line-numbers match-braces language-php">// Extract and parse a signature node from XML.
+$signatureXml = '&lt;Signature xmlns=&quot;http://www.w3.org/2000/09/xmldsig#&quot;&gt;...&lt;/Signature&gt;';
+$signatureNode = $validator-&gt;createSignatureNode($signatureXml);
+
+// Access signature components.
+$reference = $signatureNode-&gt;getReference();
+$digestValue = $signatureNode-&gt;getDigestValue();
+$signatureValue = $signatureNode-&gt;getSignatureValue();
+$x509Certificate = $signatureNode-&gt;getX509Certificate();
+</code></pre>
+<h3><a id="content-detailed-xml-signature-validation" href="signature-validator.html#content-detailed-xml-signature-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Detailed XML Signature Validation</h3>
+<pre><code class="line-numbers match-braces language-php">// Create a signature node from a signed XML document.
+$signatureNode = $validator-&gt;createSignatureNode($signatureXml);
+
+// Validate just the digest value (content integrity).
+try {
+    $validator-&gt;validateXmlDigestValue($xmlDoc, $signatureNode);
+    echo &quot;Content integrity verified!&quot;;
+} catch (SignatureException $e) {
+    echo &quot;Content may have been tampered with: &quot; . $e-&gt;getMessage();
+}
+
+// Validate just the signature value (signer authenticity).
+try {
+    $validator-&gt;validateXmlSignatureValue($signatureNode);
+    echo &quot;Signature authenticity verified!&quot;;
+} catch (SignatureException $e) {
+    echo &quot;Signature validation failed: &quot; . $e-&gt;getMessage();
+}
+</code></pre>
+<h2><a id="content-api-reference" href="signature-validator.html#content-api-reference" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Reference</h2>
+<h3><a id="content-data-signature-validation" href="signature-validator.html#content-data-signature-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Data Signature Validation</h3>
+<pre><code class="line-numbers match-braces language-php">/**
+ * Validate the digital signature of data.
+ *
+ * @param string $data Data to be verified.
+ * @param string $signature Digital signature of the data in base64.
+ * @param string $publicKey Public key of the signature of the data.
+ * @param string|int $signatureAlgorithm Algorithm used to sign (default SHA1).
+ * @return bool `true` if the signature is valid, `false` if it is invalid.
+ * @throws SignatureException If there was an error while validating.
+ */
+public function validate(
+    string $data,
+    string $signature,
+    string $publicKey,
+    string|int $signatureAlgorithm = OPENSSL_ALGO_SHA1
+): bool;
+</code></pre>
+<h3><a id="content-xml-signature-validation" href="signature-validator.html#content-xml-signature-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML Signature Validation</h3>
+<pre><code class="line-numbers match-braces language-php">/**
+ * Validate the validity of an XML signature using RSA and SHA1.
+ *
+ * @param XmlDocumentInterface|string $xml XML string to be validated.
+ * @return void
+ * @throws SignatureException If there was an error while validating.
+ */
+public function validateXml(XmlDocumentInterface|string $xml): void;
+</code></pre>
+<h3><a id="content-signature-node-handling" href="signature-validator.html#content-signature-node-handling" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signature Node Handling</h3>
+<pre><code class="line-numbers match-braces language-php">/**
+ * Creates the `Signature` instance from a string XML with the signature node.
+ *
+ * @param string $xml String with the XML of the `Signature` node.
+ * @return SignatureInterface
+ */
+public function createSignatureNode(string $xml): SignatureInterface;
+</code></pre>
+<h3><a id="content-detailed-validation-methods" href="signature-validator.html#content-detailed-validation-methods" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Detailed Validation Methods</h3>
+<pre><code class="line-numbers match-braces language-php">/**
+ * Validate the DigestValue of the signed data.
+ *
+ * @param XmlDocumentInterface|string $xml Document to be validated.
+ * @param SignatureInterface $signatureNode Signature node to be validated.
+ * @return void
+ * @throws SignatureException If the DigestValue is invalid.
+ */
+public function validateXmlDigestValue(
+    XmlDocumentInterface|string $xml,
+    SignatureInterface $signatureNode
+): void;
+
+/**
+ * Validate the signature of the `SignedInfo` node of the XML using the X509
+ * certificate.
+ *
+ * @param SignatureInterface $signatureNode Signature node to be validated.
+ * @throws SignatureException If the XML signature is invalid.
+ */
+public function validateXmlSignatureValue(
+    SignatureInterface $signatureNode
+): void;
+</code></pre>
+<h2><a id="content-implementation-details" href="signature-validator.html#content-implementation-details" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Implementation Details</h2>
+<h3><a id="content-signature-validation-process" href="signature-validator.html#content-signature-validation-process" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signature Validation Process</h3>
+<p>For general data signatures, the validation process is as follows:</p>
+<ol>
+<li>The public key is normalized (headers and footers are added if missing).</li>
+<li>The base64-encoded signature is decoded to binary.</li>
+<li>The <code>openssl_verify</code> function is called with the data, decoded signature, and public key.</li>
+<li>If the result is 1, the signature is valid; if 0, it’s invalid; if -1, an error occurred.</li>
+</ol>
+<h3><a id="content-xml-signature-validation-process" href="signature-validator.html#content-xml-signature-validation-process" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML Signature Validation Process</h3>
+<p>For XML signatures, the validation process follows the XML-DSIG standard:</p>
+<ol>
+<li>The XML document is loaded and parsed.</li>
+<li>All <code>Signature</code> elements in the document are located.</li>
+<li>For each signature element:
+<ul>
+<li>A <code>Signature</code> node object is created from the element’s XML.</li>
+<li>The digest value is validated to ensure content integrity.</li>
+<li>The signature value is validated to ensure signer authenticity.</li>
+</ul>
+</li>
+</ol>
+<h3><a id="content-digest-value-validation" href="signature-validator.html#content-digest-value-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Digest Value Validation</h3>
+<p>The digest value validation ensures that the content being signed hasn’t been modified:</p>
+<ol>
+<li>The XML document is loaded.</li>
+<li>The reference from the signature node is extracted (if any).</li>
+<li>The digest value is calculated for the referenced content or the entire document.</li>
+<li>The calculated digest value is compared to the one in the signature.</li>
+<li>If they don’t match, a <code>SignatureException</code> is thrown.</li>
+</ol>
+<h3><a id="content-signature-value-validation" href="signature-validator.html#content-signature-value-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signature Value Validation</h3>
+<p>The signature value validation ensures that the signature was created with the corresponding private key:</p>
+<ol>
+<li>The <code>SignedInfo</code> element is extracted and canonicalized.</li>
+<li>The base64-encoded signature value is obtained from the <code>SignatureValue</code> element.</li>
+<li>The public key is extracted from the <code>X509Certificate</code> element.</li>
+<li>The signature is validated using the canonicalized <code>SignedInfo</code>, the signature value, and the public key.</li>
+<li>If the validation fails, a <code>SignatureException</code> is thrown.</li>
+</ol>
+<h3><a id="content-error-handling" href="signature-validator.html#content-error-handling" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Error Handling</h3>
+<p>The <code>SignatureValidator</code> provides detailed error messages when validation fails:</p>
+<ul>
+<li>For data signatures, it indicates when an error occurred during validation.</li>
+<li>For XML signatures, it indicates whether the problem is with the digest value (content integrity) or the signature value (signer authenticity).</li>
+<li>For missing signatures or malformed XML, it provides clear error messages.</li>
+</ul>
+<p>These detailed error messages help diagnose the exact cause of validation failures.</p>
+<h3><a id="content-dependency-on-signaturegenerator" href="signature-validator.html#content-dependency-on-signaturegenerator" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Dependency on SignatureGenerator</h3>
+<p>The <code>SignatureValidator</code> requires an instance of <code>SignatureGeneratorInterface</code> to calculate digest values for XML documents. This dependency ensures that the same digest calculation algorithm is used for both signing and validating.</p>
+<h3><a id="content-xml-handling" href="signature-validator.html#content-xml-handling" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML Handling</h3>
+<p>The class uses the Derafu XML library for XML operations:</p>
+<ul>
+<li>Loading and parsing XML documents.</li>
+<li>Extracting signature elements.</li>
+<li>Canonicalizing XML for digest and signature validation.</li>
+<li>Converting between XML and PHP arrays.</li>
+</ul>
+<p>This integration ensures consistent handling of XML across the library.</p>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/signature</span>
+                            </div>
+                        </li>
+                        <a href="index.html" class="list-group-item list-group-item-action ">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                            <div class="fw-bold">Docs</div>
+                            <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+                        <a href="signature-class.html" class="list-group-item list-group-item-action ">
+                            Signature Class
+                        </a>
+                        <a href="signature-generator.html" class="list-group-item list-group-item-action ">
+                            Signature Generator
+                        </a>
+                        <a href="signature-validator.html" class="list-group-item list-group-item-action active">
+                            Signature Validator
+                        </a>
+                        <a href="signature-service.html" class="list-group-item list-group-item-action ">
+                            Signature Service
+                        </a>
+                        <a href="xml-dsig-standard.html" class="list-group-item list-group-item-action ">
+                            XML-DSIG Standard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
+    </body>
+</html>

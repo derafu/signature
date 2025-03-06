@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Signature - Library for digital signatures</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-9">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-signature-class-documentation" href="signature-class.html#content-signature-class-documentation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signature Class Documentation</h1>
+<p>The <code>Signature</code> class is the core component of the Derafu Signature library, representing an XML digital signature node according to the XML-DSIG standard.</p>
+<ul class="table-of-contents">
+<li><a href="signature-class.html#content-overview">Overview</a></li>
+<li><a href="signature-class.html#content-usage">Usage</a>
+<ul>
+<li><a href="signature-class.html#content-creating-a-new-signature-node">Creating a New Signature Node</a></li>
+<li><a href="signature-class.html#content-working-with-an-existing-signature-node">Working with an Existing Signature Node</a></li>
+</ul>
+</li>
+<li><a href="signature-class.html#content-api-reference">API Reference</a>
+<ul>
+<li><a href="signature-class.html#content-setting-and-getting-data">Setting and Getting Data</a></li>
+<li><a href="signature-class.html#content-configuring-the-signature">Configuring the Signature</a></li>
+<li><a href="signature-class.html#content-working-with-xml">Working with XML</a></li>
+<li><a href="signature-class.html#content-setting-signature-value">Setting Signature Value</a></li>
+<li><a href="signature-class.html#content-getting-signature-components">Getting Signature Components</a></li>
+</ul>
+</li>
+<li><a href="signature-class.html#content-data-structure">Data Structure</a></li>
+<li><a href="signature-class.html#content-implementation-details">Implementation Details</a>
+<ul>
+<li><a href="signature-class.html#content-xml-invalidation">XML Invalidation</a></li>
+<li><a href="signature-class.html#content-reference-uris">Reference URIs</a></li>
+<li><a href="signature-class.html#content-transformation-algorithm">Transformation Algorithm</a></li>
+</ul>
+</li>
+</ul>
+<h2><a id="content-overview" href="signature-class.html#content-overview" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Overview</h2>
+<p>The <code>Signature</code> class implements the <code>SignatureInterface</code> and represents the XML <code>&lt;Signature&gt;</code> element that contains all the information related to a digital signature in an XML document:</p>
+<ul>
+<li>The digest value of the signed content.</li>
+<li>The signature value.</li>
+<li>The public key information for signature verification.</li>
+</ul>
+<p>This class is used both when creating new signatures and when validating existing ones.</p>
+<h2><a id="content-usage" href="signature-class.html#content-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Usage</h2>
+<h3><a id="content-creating-a-new-signature-node" href="signature-class.html#content-creating-a-new-signature-node" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Creating a New Signature Node</h3>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Signature\Signature;
+use Derafu\Certificate\Service\CertificateLoader;
+
+// Load a certificate.
+$certificateLoader = new CertificateLoader();
+$certificate = $certificateLoader-&gt;loadFromFile(
+    '/path/to/certificate.p12',
+    'password'
+);
+
+// Create a signature node.
+$signatureNode = new Signature();
+
+// Configure with digest value, certificate, and optional reference.
+$signatureNode-&gt;configureSignatureData(
+    digestValue: 'bWFpbkRpZ2VzdFZhbHVlQmFzZTY0',
+    certificate: $certificate,
+    reference: 'documentId'  // Optional, specify to sign a specific element.
+);
+</code></pre>
+<h3><a id="content-working-with-an-existing-signature-node" href="signature-class.html#content-working-with-an-existing-signature-node" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Working with an Existing Signature Node</h3>
+<pre><code class="line-numbers match-braces language-php">// Typically you'd use the SignatureValidator to create a signature node from XML.
+$signatureNode = $signatureService-&gt;createSignatureNode($signatureXml);
+
+// Access signature properties.
+$reference = $signatureNode-&gt;getReference();
+$digestValue = $signatureNode-&gt;getDigestValue();
+$signatureValue = $signatureNode-&gt;getSignatureValue();
+$x509Certificate = $signatureNode-&gt;getX509Certificate();
+</code></pre>
+<h2><a id="content-api-reference" href="signature-class.html#content-api-reference" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>API Reference</h2>
+<h3><a id="content-setting-and-getting-data" href="signature-class.html#content-setting-and-getting-data" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Setting and Getting Data</h3>
+<pre><code class="line-numbers match-braces language-php">// Set raw data structure.
+$signatureNode-&gt;setData($dataArray);
+
+// Get the current data structure.
+$dataArray = $signatureNode-&gt;getData();
+</code></pre>
+<h3><a id="content-configuring-the-signature" href="signature-class.html#content-configuring-the-signature" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Configuring the Signature</h3>
+<pre><code class="line-numbers match-braces language-php">// Configure all signature components at once.
+$signatureNode-&gt;configureSignatureData(
+    digestValue: 'base64DigestValue',
+    certificate: $certificate,
+    reference: 'elementId'
+);
+</code></pre>
+<h3><a id="content-working-with-xml" href="signature-class.html#content-working-with-xml" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Working with XML</h3>
+<pre><code class="line-numbers match-braces language-php">// Set the XML representation of the signature.
+$signatureNode-&gt;setXml($xmlDocument);
+
+// Get the XML representation of the signature.
+$xmlDocument = $signatureNode-&gt;getXml();
+</code></pre>
+<h3><a id="content-setting-signature-value" href="signature-class.html#content-setting-signature-value" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Setting Signature Value</h3>
+<pre><code class="line-numbers match-braces language-php">// Set the calculated signature value (after signing the SignedInfo element).
+$signatureNode-&gt;setSignatureValue('base64SignatureValue');
+</code></pre>
+<h3><a id="content-getting-signature-components" href="signature-class.html#content-getting-signature-components" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Getting Signature Components</h3>
+<pre><code class="line-numbers match-braces language-php">// Get the reference URI (without # prefix).
+$reference = $signatureNode-&gt;getReference();
+
+// Get the digest value.
+$digestValue = $signatureNode-&gt;getDigestValue();
+
+// Get the X.509 certificate (without headers/footers).
+$certificate = $signatureNode-&gt;getX509Certificate();
+
+// Get the signature value.
+$signatureValue = $signatureNode-&gt;getSignatureValue();
+</code></pre>
+<h2><a id="content-data-structure" href="signature-class.html#content-data-structure" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Data Structure</h2>
+<p>The <code>Signature</code> class maintains an internal data array that represents the XML structure of the signature. This structure follows the XML-DSIG standard:</p>
+<pre><code class="line-numbers match-braces language-php">[
+    'Signature' =&gt; [
+        '@attributes' =&gt; [
+            'xmlns' =&gt; 'http://www.w3.org/2000/09/xmldsig#',
+        ],
+        'SignedInfo' =&gt; [
+            '@attributes' =&gt; [
+                'xmlns:xsi' =&gt; 'http://www.w3.org/2001/XMLSchema-instance',
+            ],
+            'CanonicalizationMethod' =&gt; [
+                '@attributes' =&gt; [
+                    'Algorithm' =&gt; 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315',
+                ],
+            ],
+            'SignatureMethod' =&gt; [
+                '@attributes' =&gt; [
+                    'Algorithm' =&gt; 'http://www.w3.org/2000/09/xmldsig#rsa-sha1',
+                ],
+            ],
+            'Reference' =&gt; [
+                '@attributes' =&gt; [
+                    'URI' =&gt; '', // Reference URI, empty for entire document.
+                ],
+                'Transforms' =&gt; [
+                    'Transform' =&gt; [
+                        '@attributes' =&gt; [
+                            'Algorithm' =&gt; 'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+                        ],
+                    ],
+                ],
+                'DigestMethod' =&gt; [
+                    '@attributes' =&gt; [
+                        'Algorithm' =&gt; 'http://www.w3.org/2000/09/xmldsig#sha1',
+                    ],
+                ],
+                'DigestValue' =&gt; '', // Will contain the digest value.
+            ],
+        ],
+        'SignatureValue' =&gt; '', // Will contain the signature value.
+        'KeyInfo' =&gt; [
+            'KeyValue' =&gt; [
+                'RSAKeyValue' =&gt; [
+                    'Modulus' =&gt; '', // Will contain the certificate modulus.
+                    'Exponent' =&gt; '', // Will contain the certificate exponent.
+                ],
+            ],
+            'X509Data' =&gt; [
+                'X509Certificate' =&gt; '', // Will contain the certificate.
+            ],
+        ],
+    ],
+]
+</code></pre>
+<h2><a id="content-implementation-details" href="signature-class.html#content-implementation-details" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Implementation Details</h2>
+<h3><a id="content-xml-invalidation" href="signature-class.html#content-xml-invalidation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML Invalidation</h3>
+<p>The <code>Signature</code> class automatically invalidates the XML representation when data is modified:</p>
+<pre><code class="line-numbers match-braces language-php">// This will cause the internal XML to be invalidated.
+$signatureNode-&gt;setData($newData);
+
+// This will also invalidate the XML.
+$signatureNode-&gt;setSignatureValue($newSignatureValue);
+</code></pre>
+<p>After invalidation, the XML must be regenerated (typically by the <code>SignatureGenerator</code> class) before <code>getXml()</code> can be called again.</p>
+<h3><a id="content-reference-uris" href="signature-class.html#content-reference-uris" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Reference URIs</h3>
+<p>Reference URIs are handled according to the XML-DSIG standard:</p>
+<ul>
+<li>An empty URI (<code>&quot;&quot;</code>) means the entire document is signed.</li>
+<li>A URI starting with <code>#</code> refers to an element with the specified ID.</li>
+<li>The <code>getReference()</code> method returns the reference without the <code>#</code> prefix.</li>
+<li>The <code>configureSignatureData()</code> method automatically adds the <code>#</code> prefix if not present.</li>
+</ul>
+<h3><a id="content-transformation-algorithm" href="signature-class.html#content-transformation-algorithm" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Transformation Algorithm</h3>
+<p>The transformation algorithm changes based on whether a reference is provided:</p>
+<ul>
+<li>With a reference: <code>http://www.w3.org/TR/2001/REC-xml-c14n-20010315</code> (standard C14N).</li>
+<li>Without a reference: <code>http://www.w3.org/2000/09/xmldsig#enveloped-signature</code> (enveloped signature transformation).</li>
+</ul>
+<p>This ensures that the signature is correctly calculated for both whole-document signatures and element signatures.</p>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/signature</span>
+                            </div>
+                        </li>
+                        <a href="index.html" class="list-group-item list-group-item-action ">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                            <div class="fw-bold">Docs</div>
+                            <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+                        <a href="signature-class.html" class="list-group-item list-group-item-action active">
+                            Signature Class
+                        </a>
+                        <a href="signature-generator.html" class="list-group-item list-group-item-action ">
+                            Signature Generator
+                        </a>
+                        <a href="signature-validator.html" class="list-group-item list-group-item-action ">
+                            Signature Validator
+                        </a>
+                        <a href="signature-service.html" class="list-group-item list-group-item-action ">
+                            Signature Service
+                        </a>
+                        <a href="xml-dsig-standard.html" class="list-group-item list-group-item-action ">
+                            XML-DSIG Standard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
+    </body>
+</html>

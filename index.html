@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Signature - Library for digital signatures</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-9">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-derafu-signature---library-for-digital-signatures" href="index.html#content-derafu-signature---library-for-digital-signatures" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Derafu: Signature - Library for digital signatures</h1>
+<p><a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://github.com/derafu/project/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/derafu/project/actions/workflows/ci.yml/badge.svg?branch=main&amp;event=push" alt="CI Workflow" /></a>
+<a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a></p>
+<p>A comprehensive PHP library for creating and validating digital signatures, with special focus on XML digital signatures (XML-DSIG).</p>
+<h2><a id="content-features" href="index.html#content-features" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Features</h2>
+<ul>
+<li><strong>Digital Signatures</strong>: Sign and validate any data with RSA key pairs.</li>
+<li><strong>XML Signatures</strong>: Full support for XML Digital Signatures (XML-DSIG).</li>
+<li><strong>Signature Verification</strong>: Validate signatures against public keys.</li>
+<li><strong>Reference Support</strong>: Sign specific sections of XML documents using ID references.</li>
+<li><strong>Integration</strong>: Works seamlessly with Derafu Certificate and Derafu XML libraries.</li>
+</ul>
+<h2><a id="content-installation" href="index.html#content-installation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Installation</h2>
+<pre><code class="line-numbers match-braces language-bash">composer require derafu/signature
+</code></pre>
+<h2><a id="content-basic-usage" href="index.html#content-basic-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Usage</h2>
+<h3><a id="content-signing-data" href="index.html#content-signing-data" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signing Data</h3>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Signature\Service\SignatureGenerator;
+use Derafu\Signature\Service\SignatureService;
+use Derafu\Signature\Service\SignatureValidator;
+use Derafu\Xml\Service\XmlDecoder;
+use Derafu\Xml\Service\XmlEncoder;
+use Derafu\Xml\Service\XmlService;
+use Derafu\Xml\Service\XmlValidator;
+
+// Set up the signature service.
+$xmlEncoder = new XmlEncoder();
+$xmlDecoder = new XmlDecoder();
+$xmlValidator = new XmlValidator();
+$xmlService = new XmlService($xmlEncoder, $xmlDecoder, $xmlValidator);
+
+$signatureGenerator = new SignatureGenerator($xmlService);
+$signatureValidator = new SignatureValidator($signatureGenerator, $xmlService);
+$signatureService = new SignatureService($signatureGenerator, $signatureValidator);
+
+// Sign simple data.
+$privateKey = '...';
+$data = 'Hello, world!';
+$signature = $signatureService-&gt;sign($data, $privateKey);
+
+// Validate the signature.
+$isValid = $signatureService-&gt;validate($data, $signature, $publicKey);
+</code></pre>
+<h3><a id="content-signing-xml-documents" href="index.html#content-signing-xml-documents" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signing XML Documents</h3>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Certificate\Service\CertificateLoader;
+
+// Load a certificate.
+$certificateLoader = new CertificateLoader();
+$certificate = $certificateLoader-&gt;loadFromFile(
+    '/path/to/certificate.p12',
+    'password'
+);
+
+// Load XML to sign.
+$xml = file_get_contents('document.xml');
+
+// Sign the entire XML document.
+$signedXml = $signatureService-&gt;signXml($xml, $certificate);
+
+// Sign a specific element in the XML document (identified by ID).
+$signedXml = $signatureService-&gt;signXml($xml, $certificate, 'elementId');
+
+// Save the signed XML.
+file_put_contents('signed_document.xml', $signedXml);
+</code></pre>
+<h3><a id="content-validating-xml-signatures" href="index.html#content-validating-xml-signatures" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Validating XML Signatures</h3>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Signature\Exception\SignatureException;
+
+// Load signed XML.
+$signedXml = file_get_contents('signed_document.xml');
+
+try {
+    // Validate the XML signature.
+    $signatureService-&gt;validateXml($signedXml);
+    echo &quot;Signature is valid!&quot;;
+} catch (SignatureException $e) {
+    echo &quot;Signature validation failed: &quot; . $e-&gt;getMessage();
+}
+</code></pre>
+<h2><a id="content-advanced-usage" href="index.html#content-advanced-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Advanced Usage</h2>
+<h3><a id="content-detailed-xml-signature-validation" href="index.html#content-detailed-xml-signature-validation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Detailed XML Signature Validation</h3>
+<p>For more detailed control over the validation process:</p>
+<pre><code class="line-numbers match-braces language-php">// Create a signature node from the signed XML.
+$signatureNode = $signatureService-&gt;createSignatureNode($signatureXml);
+
+// Validate the digest value (integrity of the signed content).
+$signatureService-&gt;validateXmlDigestValue($xmlDocument, $signatureNode);
+
+// Validate the signature value (authenticity of the signer).
+$signatureService-&gt;validateXmlSignatureValue($signatureNode);
+</code></pre>
+<h3><a id="content-calculating-digest-values" href="index.html#content-calculating-digest-values" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Calculating Digest Values</h3>
+<pre><code class="line-numbers match-braces language-php">use Derafu\Xml\XmlDocument;
+
+// Load XML document.
+$xmlDoc = new XmlDocument();
+$xmlDoc-&gt;loadXml($xml);
+
+// Calculate digest value for the entire document.
+$digestValue = $signatureService-&gt;generateXmlDigestValue($xmlDoc);
+
+// Calculate digest value for a specific element.
+$digestValue = $signatureService-&gt;generateXmlDigestValue($xmlDoc, 'elementId');
+</code></pre>
+<h2><a id="content-xml-dsig-implementation-details" href="index.html#content-xml-dsig-implementation-details" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML-DSIG Implementation Details</h2>
+<p>The library implements XML Digital Signatures according to the <a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://www.w3.org/TR/xmldsig-core/">W3C XML Signature Syntax and Processing</a> specification:</p>
+<ol>
+<li>
+<p>The <code>Signature</code> element is created with the following components:</p>
+<ul>
+<li><code>SignedInfo</code>: Contains information about what was signed.</li>
+<li><code>SignatureValue</code>: Contains the actual signature value.</li>
+<li><code>KeyInfo</code>: Contains information about the key used to validate the signature.</li>
+</ul>
+</li>
+<li>
+<p>Canonicalization is performed using the C14N algorithm (<a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="http://www.w3.org/TR/2001/REC-xml-c14n-20010315">http://www.w3.org/TR/2001/REC-xml-c14n-20010315</a>).</p>
+</li>
+<li>
+<p>Signatures are created using RSA-SHA1 (<a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="http://www.w3.org/2000/09/xmldsig#rsa-sha1">http://www.w3.org/2000/09/xmldsig#rsa-sha1</a>).</p>
+</li>
+<li>
+<p>Digests are created using SHA1 (<a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="http://www.w3.org/2000/09/xmldsig#sha1">http://www.w3.org/2000/09/xmldsig#sha1</a>).</p>
+</li>
+</ol>
+<h3><a id="content-xml-dsig-structure" href="index.html#content-xml-dsig-structure" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML-DSIG Structure</h3>
+<p>When signing an XML document, the resulting signature will have the following structure:</p>
+<pre><code class="line-numbers match-braces language-xml">&lt;Signature xmlns=&quot;http://www.w3.org/2000/09/xmldsig#&quot;&gt;
+  &lt;SignedInfo xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;&gt;
+    &lt;CanonicalizationMethod Algorithm=&quot;http://www.w3.org/TR/2001/REC-xml-c14n-20010315&quot;/&gt;
+    &lt;SignatureMethod Algorithm=&quot;http://www.w3.org/2000/09/xmldsig#rsa-sha1&quot;/&gt;
+    &lt;Reference URI=&quot;#elementId&quot;&gt;
+      &lt;Transforms&gt;
+        &lt;Transform Algorithm=&quot;http://www.w3.org/2000/09/xmldsig#enveloped-signature&quot;/&gt;
+      &lt;/Transforms&gt;
+      &lt;DigestMethod Algorithm=&quot;http://www.w3.org/2000/09/xmldsig#sha1&quot;/&gt;
+      &lt;DigestValue&gt;...&lt;/DigestValue&gt;
+    &lt;/Reference&gt;
+  &lt;/SignedInfo&gt;
+  &lt;SignatureValue&gt;...&lt;/SignatureValue&gt;
+  &lt;KeyInfo&gt;
+    &lt;KeyValue&gt;
+      &lt;RSAKeyValue&gt;
+        &lt;Modulus&gt;...&lt;/Modulus&gt;
+        &lt;Exponent&gt;...&lt;/Exponent&gt;
+      &lt;/RSAKeyValue&gt;
+    &lt;/KeyValue&gt;
+    &lt;X509Data&gt;
+      &lt;X509Certificate&gt;...&lt;/X509Certificate&gt;
+    &lt;/X509Data&gt;
+  &lt;/KeyInfo&gt;
+&lt;/Signature&gt;
+</code></pre>
+<h2><a id="content-integration-with-other-derafu-libraries" href="index.html#content-integration-with-other-derafu-libraries" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Integration with Other Derafu Libraries</h2>
+<p>This library is designed to work seamlessly with other Derafu libraries:</p>
+<ul>
+<li><strong>Derafu Certificate</strong>: For handling digital certificates and key pairs.</li>
+<li><strong>Derafu XML</strong>: For handling XML documents and operations.</li>
+</ul>
+<h2><a id="content-contributing" href="index.html#content-contributing" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Contributing</h2>
+<p>Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.</p>
+<h2><a id="content-license" href="index.html#content-license" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>License</h2>
+<p>This package is open-sourced software licensed under the <a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://opensource.org/licenses/MIT">MIT license</a>.</p>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/signature</span>
+                            </div>
+                        </li>
+                        <a href="index.html" class="list-group-item list-group-item-action active">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                            <div class="fw-bold">Docs</div>
+                            <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+                        <a href="signature-class.html" class="list-group-item list-group-item-action ">
+                            Signature Class
+                        </a>
+                        <a href="signature-generator.html" class="list-group-item list-group-item-action ">
+                            Signature Generator
+                        </a>
+                        <a href="signature-validator.html" class="list-group-item list-group-item-action ">
+                            Signature Validator
+                        </a>
+                        <a href="signature-service.html" class="list-group-item list-group-item-action ">
+                            Signature Service
+                        </a>
+                        <a href="xml-dsig-standard.html" class="list-group-item list-group-item-action ">
+                            XML-DSIG Standard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
+    </body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Signature - Library for digital signatures</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+            <div class="container">
+            <div class="row">
+                <main class="col-md-9">
+                    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-xml-digital-signature-xml-dsig-implementation-guide" href="xml-dsig-standard.html#content-xml-digital-signature-xml-dsig-implementation-guide" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML Digital Signature (XML-DSIG) Implementation Guide</h1>
+<p>This document provides an in-depth explanation of how the Derafu Signature library implements the XML Digital Signature (XML-DSIG) standard, including the structure of signature elements, the signing process, and the validation process.</p>
+<ul class="table-of-contents">
+<li><a href="xml-dsig-standard.html#content-xml-dsig-overview">XML-DSIG Overview</a></li>
+<li><a href="xml-dsig-standard.html#content-signature-structure">Signature Structure</a>
+<ul>
+<li><a href="xml-dsig-standard.html#content-key-components">Key Components</a></li>
+</ul>
+</li>
+<li><a href="xml-dsig-standard.html#content-signing-process">Signing Process</a>
+<ul>
+<li><a href="xml-dsig-standard.html#content-1-preparing-the-data">1. Preparing the Data</a></li>
+<li><a href="xml-dsig-standard.html#content-2-calculating-the-digest-value">2. Calculating the Digest Value</a></li>
+<li><a href="xml-dsig-standard.html#content-3-creating-the-signedinfo-element">3. Creating the SignedInfo Element</a></li>
+<li><a href="xml-dsig-standard.html#content-4-calculating-the-signature-value">4. Calculating the Signature Value</a></li>
+<li><a href="xml-dsig-standard.html#content-5-including-key-information">5. Including Key Information</a></li>
+<li><a href="xml-dsig-standard.html#content-6-adding-the-signature-to-the-document">6. Adding the Signature to the Document</a></li>
+</ul>
+</li>
+<li><a href="xml-dsig-standard.html#content-validation-process">Validation Process</a>
+<ul>
+<li><a href="xml-dsig-standard.html#content-1-locating-signature-elements">1. Locating Signature Elements</a></li>
+<li><a href="xml-dsig-standard.html#content-2-validating-the-digest-value">2. Validating the Digest Value</a></li>
+<li><a href="xml-dsig-standard.html#content-3-validating-the-signature-value">3. Validating the Signature Value</a></li>
+</ul>
+</li>
+<li><a href="xml-dsig-standard.html#content-reference-types">Reference Types</a>
+<ul>
+<li><a href="xml-dsig-standard.html#content-1-element-references">1. Element References</a></li>
+<li><a href="xml-dsig-standard.html#content-2-whole-document-references">2. Whole Document References</a></li>
+</ul>
+</li>
+<li><a href="xml-dsig-standard.html#content-canonicalization">Canonicalization</a>
+<ul>
+<li><a href="xml-dsig-standard.html#content-1-xml-canonicalization-c14n">1. XML Canonicalization (C14N)</a></li>
+<li><a href="xml-dsig-standard.html#content-2-enveloped-signature-transform">2. Enveloped Signature Transform</a></li>
+</ul>
+</li>
+<li><a href="xml-dsig-standard.html#content-working-with-references-and-ids">Working with References and IDs</a></li>
+<li><a href="xml-dsig-standard.html#content-security-considerations">Security Considerations</a>
+<ul>
+<li><a href="xml-dsig-standard.html#content-digest-algorithm">Digest Algorithm</a></li>
+<li><a href="xml-dsig-standard.html#content-signature-algorithm">Signature Algorithm</a></li>
+<li><a href="xml-dsig-standard.html#content-certificate-handling">Certificate Handling</a></li>
+</ul>
+</li>
+<li><a href="xml-dsig-standard.html#content-compatibility">Compatibility</a></li>
+<li><a href="xml-dsig-standard.html#content-common-issues">Common Issues</a>
+<ul>
+<li><a href="xml-dsig-standard.html#content-invalid-references">Invalid References</a></li>
+<li><a href="xml-dsig-standard.html#content-malformed-xml">Malformed XML</a></li>
+<li><a href="xml-dsig-standard.html#content-character-encoding">Character Encoding</a></li>
+</ul>
+</li>
+<li><a href="xml-dsig-standard.html#content-example-usage">Example Usage</a>
+<ul>
+<li><a href="xml-dsig-standard.html#content-signing-with-a-reference">Signing with a Reference</a></li>
+<li><a href="xml-dsig-standard.html#content-signing-the-entire-document">Signing the Entire Document</a></li>
+<li><a href="xml-dsig-standard.html#content-validating-a-signature">Validating a Signature</a></li>
+</ul>
+</li>
+</ul>
+<h2><a id="content-xml-dsig-overview" href="xml-dsig-standard.html#content-xml-dsig-overview" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>XML-DSIG Overview</h2>
+<p>XML Digital Signatures provide integrity, message authentication, and signer authentication for XML data. The XML-DSIG standard is defined by the W3C in the <a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://www.w3.org/TR/xmldsig-core/">XML Signature Syntax and Processing</a> specification.</p>
+<h2><a id="content-signature-structure" href="xml-dsig-standard.html#content-signature-structure" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signature Structure</h2>
+<p>The Derafu Signature library creates XML signatures with the following structure:</p>
+<pre><code class="line-numbers match-braces language-xml">&lt;Signature xmlns=&quot;http://www.w3.org/2000/09/xmldsig#&quot;&gt;
+  &lt;SignedInfo xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;&gt;
+    &lt;CanonicalizationMethod Algorithm=&quot;http://www.w3.org/TR/2001/REC-xml-c14n-20010315&quot;/&gt;
+    &lt;SignatureMethod Algorithm=&quot;http://www.w3.org/2000/09/xmldsig#rsa-sha1&quot;/&gt;
+    &lt;Reference URI=&quot;#elementId&quot;&gt;
+      &lt;Transforms&gt;
+        &lt;Transform Algorithm=&quot;http://www.w3.org/2000/09/xmldsig#enveloped-signature&quot;/&gt;
+      &lt;/Transforms&gt;
+      &lt;DigestMethod Algorithm=&quot;http://www.w3.org/2000/09/xmldsig#sha1&quot;/&gt;
+      &lt;DigestValue&gt;base64EncodedDigestValue&lt;/DigestValue&gt;
+    &lt;/Reference&gt;
+  &lt;/SignedInfo&gt;
+  &lt;SignatureValue&gt;base64EncodedSignatureValue&lt;/SignatureValue&gt;
+  &lt;KeyInfo&gt;
+    &lt;KeyValue&gt;
+      &lt;RSAKeyValue&gt;
+        &lt;Modulus&gt;base64EncodedModulus&lt;/Modulus&gt;
+        &lt;Exponent&gt;base64EncodedExponent&lt;/Exponent&gt;
+      &lt;/RSAKeyValue&gt;
+    &lt;/KeyValue&gt;
+    &lt;X509Data&gt;
+      &lt;X509Certificate&gt;base64EncodedCertificate&lt;/X509Certificate&gt;
+    &lt;/X509Data&gt;
+  &lt;/KeyInfo&gt;
+&lt;/Signature&gt;
+</code></pre>
+<h3><a id="content-key-components" href="xml-dsig-standard.html#content-key-components" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Key Components</h3>
+<ol>
+<li>
+<p><strong>SignedInfo</strong>: Contains information about what data is being signed.</p>
+<ul>
+<li><strong>CanonicalizationMethod</strong>: Specifies how the XML is normalized before signing.</li>
+<li><strong>SignatureMethod</strong>: Specifies the algorithm used for signing (RSA-SHA1).</li>
+<li><strong>Reference</strong>: Points to the data being signed.
+<ul>
+<li><strong>Transforms</strong>: Describes transformations applied to the data before digesting.</li>
+<li><strong>DigestMethod</strong>: Specifies the algorithm used for the digest (SHA1).</li>
+<li><strong>DigestValue</strong>: Contains the base64-encoded digest of the data.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>SignatureValue</strong>: Contains the base64-encoded signature of the canonicalized SignedInfo element.</p>
+</li>
+<li>
+<p><strong>KeyInfo</strong>: Contains information about the key used to validate the signature.</p>
+<ul>
+<li><strong>KeyValue/RSAKeyValue</strong>: Contains the RSA key parameters (modulus and exponent).</li>
+<li><strong>X509Data/X509Certificate</strong>: Contains the X.509 certificate used for signing.</li>
+</ul>
+</li>
+</ol>
+<h2><a id="content-signing-process" href="xml-dsig-standard.html#content-signing-process" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signing Process</h2>
+<p>The Derafu Signature library implements XML signing following these steps:</p>
+<h3><a id="content-1-preparing-the-data" href="xml-dsig-standard.html#content-1-preparing-the-data" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>1. Preparing the Data</h3>
+<ul>
+<li>If a reference ID is specified, the referenced element is located in the XML document.</li>
+<li>Otherwise, the entire XML document is used (excluding any existing Signature elements).</li>
+</ul>
+<h3><a id="content-2-calculating-the-digest-value" href="xml-dsig-standard.html#content-2-calculating-the-digest-value" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>2. Calculating the Digest Value</h3>
+<ul>
+<li>The data is canonicalized using the C14N algorithm.</li>
+<li>The canonicalized data is converted to ISO-8859-1 encoding.</li>
+<li>The SHA1 digest of the data is calculated and base64-encoded.</li>
+</ul>
+<h3><a id="content-3-creating-the-signedinfo-element" href="xml-dsig-standard.html#content-3-creating-the-signedinfo-element" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>3. Creating the SignedInfo Element</h3>
+<ul>
+<li>The SignedInfo element is created with the appropriate CanonicalizationMethod, SignatureMethod, and Reference elements.</li>
+<li>The DigestValue is included in the Reference element.</li>
+</ul>
+<h3><a id="content-4-calculating-the-signature-value" href="xml-dsig-standard.html#content-4-calculating-the-signature-value" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>4. Calculating the Signature Value</h3>
+<ul>
+<li>The SignedInfo element is canonicalized and converted to ISO-8859-1 encoding.</li>
+<li>The canonicalized SignedInfo is signed using the private key from the certificate.</li>
+<li>The resulting signature is base64-encoded and included in the SignatureValue element.</li>
+</ul>
+<h3><a id="content-5-including-key-information" href="xml-dsig-standard.html#content-5-including-key-information" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>5. Including Key Information</h3>
+<ul>
+<li>The public key components (modulus and exponent) are extracted from the certificate.</li>
+<li>The certificate itself is included in the X509Certificate element.</li>
+</ul>
+<h3><a id="content-6-adding-the-signature-to-the-document" href="xml-dsig-standard.html#content-6-adding-the-signature-to-the-document" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>6. Adding the Signature to the Document</h3>
+<ul>
+<li>The complete Signature element is added to the XML document, typically as the last child of the root element.</li>
+</ul>
+<h2><a id="content-validation-process" href="xml-dsig-standard.html#content-validation-process" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Validation Process</h2>
+<p>The Derafu Signature library validates XML signatures following these steps:</p>
+<h3><a id="content-1-locating-signature-elements" href="xml-dsig-standard.html#content-1-locating-signature-elements" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>1. Locating Signature Elements</h3>
+<ul>
+<li>All Signature elements in the XML document are located.</li>
+<li>Each signature is validated independently.</li>
+</ul>
+<h3><a id="content-2-validating-the-digest-value" href="xml-dsig-standard.html#content-2-validating-the-digest-value" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>2. Validating the Digest Value</h3>
+<ul>
+<li>The reference in the signature is extracted.</li>
+<li>The referenced data (or the entire document) is canonicalized and converted to ISO-8859-1 encoding.</li>
+<li>The SHA1 digest of the data is calculated and base64-encoded.</li>
+<li>The calculated digest is compared to the DigestValue in the signature.</li>
+<li>If they don’t match, the content integrity check fails.</li>
+</ul>
+<h3><a id="content-3-validating-the-signature-value" href="xml-dsig-standard.html#content-3-validating-the-signature-value" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>3. Validating the Signature Value</h3>
+<ul>
+<li>The SignedInfo element is canonicalized and converted to ISO-8859-1 encoding.</li>
+<li>The X.509 certificate is extracted from the X509Certificate element.</li>
+<li>The signature value is validated using the canonicalized SignedInfo, the SignatureValue, and the public key from the certificate.</li>
+<li>If the validation fails, the signer authenticity check fails.</li>
+</ul>
+<h2><a id="content-reference-types" href="xml-dsig-standard.html#content-reference-types" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Reference Types</h2>
+<p>The Derafu Signature library supports two types of references:</p>
+<h3><a id="content-1-element-references" href="xml-dsig-standard.html#content-1-element-references" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>1. Element References</h3>
+<ul>
+<li>Specified by a URI attribute with a value starting with <code>#</code> (e.g., <code>URI=&quot;#elementId&quot;</code>).</li>
+<li>Only the referenced element is signed.</li>
+<li>The transform algorithm is set to standard C14N.</li>
+</ul>
+<h3><a id="content-2-whole-document-references" href="xml-dsig-standard.html#content-2-whole-document-references" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>2. Whole Document References</h3>
+<ul>
+<li>Specified by an empty URI attribute (<code>URI=&quot;&quot;</code>).</li>
+<li>The entire document is signed, excluding any Signature elements.</li>
+<li>The transform algorithm is set to “enveloped signature transformation”.</li>
+</ul>
+<h2><a id="content-canonicalization" href="xml-dsig-standard.html#content-canonicalization" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Canonicalization</h2>
+<p>The Derafu Signature library uses the following canonicalization algorithms:</p>
+<h3><a id="content-1-xml-canonicalization-c14n" href="xml-dsig-standard.html#content-1-xml-canonicalization-c14n" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>1. XML Canonicalization (C14N)</h3>
+<ul>
+<li>Algorithm: <code>http://www.w3.org/TR/2001/REC-xml-c14n-20010315</code></li>
+<li>Ensures consistent XML representation regardless of formatting differences.</li>
+<li>Applied to data before calculating digests and to SignedInfo before calculating signatures.</li>
+</ul>
+<h3><a id="content-2-enveloped-signature-transform" href="xml-dsig-standard.html#content-2-enveloped-signature-transform" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>2. Enveloped Signature Transform</h3>
+<ul>
+<li>Algorithm: <code>http://www.w3.org/2000/09/xmldsig#enveloped-signature</code></li>
+<li>Excludes the signature itself when signing the entire document.</li>
+<li>Prevents circular references in the signing process.</li>
+</ul>
+<h2><a id="content-working-with-references-and-ids" href="xml-dsig-standard.html#content-working-with-references-and-ids" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Working with References and IDs</h2>
+<p>When using element references, the referenced element must have an <code>ID</code> attribute:</p>
+<pre><code class="line-numbers match-braces language-xml">&lt;root&gt;
+  &lt;element ID=&quot;myElement&quot;&gt;data&lt;/element&gt;
+&lt;/root&gt;
+</code></pre>
+<p>The reference in the signature would be:</p>
+<pre><code class="line-numbers match-braces language-xml">&lt;Reference URI=&quot;#myElement&quot;&gt;
+  &lt;!-- ... --&gt;
+&lt;/Reference&gt;
+</code></pre>
+<p>The <code>SignatureGenerator.signXml()</code> method accepts the ID as a parameter:</p>
+<pre><code class="line-numbers match-braces language-php">$signedXml = $signatureGenerator-&gt;signXml($xml, $certificate, 'myElement');
+</code></pre>
+<h2><a id="content-security-considerations" href="xml-dsig-standard.html#content-security-considerations" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Security Considerations</h2>
+<h3><a id="content-digest-algorithm" href="xml-dsig-standard.html#content-digest-algorithm" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Digest Algorithm</h3>
+<p>The library uses SHA1 for digest calculation. While SHA1 is considered cryptographically weak for certain applications, it remains the standard algorithm specified in the XML-DSIG specification.</p>
+<h3><a id="content-signature-algorithm" href="xml-dsig-standard.html#content-signature-algorithm" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signature Algorithm</h3>
+<p>The library uses RSA-SHA1 for signature calculation, which is the standard algorithm specified in the XML-DSIG specification.</p>
+<h3><a id="content-certificate-handling" href="xml-dsig-standard.html#content-certificate-handling" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Certificate Handling</h3>
+<p>The library includes the entire X.509 certificate in the signature, which allows for complete validation including certificate chain verification (although this is not currently implemented in the library).</p>
+<h2><a id="content-compatibility" href="xml-dsig-standard.html#content-compatibility" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Compatibility</h2>
+<p>The XML signatures generated by the Derafu Signature library follow the W3C XML-DSIG standard and should be compatible with other XML-DSIG implementations. However, different implementations may have subtle differences in canonicalization or other aspects of the signing process.</p>
+<h2><a id="content-common-issues" href="xml-dsig-standard.html#content-common-issues" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Common Issues</h2>
+<h3><a id="content-invalid-references" href="xml-dsig-standard.html#content-invalid-references" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Invalid References</h3>
+<p>If a reference ID is specified but doesn’t exist in the XML document, the signing process will fail.</p>
+<h3><a id="content-malformed-xml" href="xml-dsig-standard.html#content-malformed-xml" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Malformed XML</h3>
+<p>If the XML document is not well-formed, both signing and validation will fail.</p>
+<h3><a id="content-character-encoding" href="xml-dsig-standard.html#content-character-encoding" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Character Encoding</h3>
+<p>The library uses ISO-8859-1 encoding for canonicalized XML to ensure consistent digest and signature calculation across different systems.</p>
+<h2><a id="content-example-usage" href="xml-dsig-standard.html#content-example-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Example Usage</h2>
+<h3><a id="content-signing-with-a-reference" href="xml-dsig-standard.html#content-signing-with-a-reference" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signing with a Reference</h3>
+<pre><code class="line-numbers match-braces language-php">$xml = '&lt;root&gt;&lt;element ID=&quot;myElement&quot;&gt;data&lt;/element&gt;&lt;/root&gt;';
+$signedXml = $signatureService-&gt;signXml($xml, $certificate, 'myElement');
+</code></pre>
+<h3><a id="content-signing-the-entire-document" href="xml-dsig-standard.html#content-signing-the-entire-document" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Signing the Entire Document</h3>
+<pre><code class="line-numbers match-braces language-php">$xml = '&lt;root&gt;&lt;element&gt;data&lt;/element&gt;&lt;/root&gt;';
+$signedXml = $signatureService-&gt;signXml($xml, $certificate);
+</code></pre>
+<h3><a id="content-validating-a-signature" href="xml-dsig-standard.html#content-validating-a-signature" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Validating a Signature</h3>
+<pre><code class="line-numbers match-braces language-php">try {
+    $signatureService-&gt;validateXml($signedXml);
+    echo &quot;Signature is valid!&quot;;
+} catch (SignatureException $e) {
+    echo &quot;Signature validation failed: &quot; . $e-&gt;getMessage();
+}
+</code></pre>
+</div>
+</div>
+                </main>
+                <div class="col-md-2 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                              <div class="fw-bold">Package Info</div>
+                              <span class="smal text-muted">derafu/signature</span>
+                            </div>
+                        </li>
+                        <a href="index.html" class="list-group-item list-group-item-action ">
+                            README
+                        </a>
+                    </div>
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                            <div class="fw-bold">Docs</div>
+                            <span class="smal text-muted">Guides & Examples</span>
+                            </div>
+                        </li>
+                        <a href="signature-class.html" class="list-group-item list-group-item-action ">
+                            Signature Class
+                        </a>
+                        <a href="signature-generator.html" class="list-group-item list-group-item-action ">
+                            Signature Generator
+                        </a>
+                        <a href="signature-validator.html" class="list-group-item list-group-item-action ">
+                            Signature Validator
+                        </a>
+                        <a href="signature-service.html" class="list-group-item list-group-item-action ">
+                            Signature Service
+                        </a>
+                        <a href="xml-dsig-standard.html" class="list-group-item list-group-item-action active">
+                            XML-DSIG Standard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/toolbar/prism-toolbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/show-language/prism-show-language.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/command-line/prism-command-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/match-braces/prism-match-braces.min.js"></script>
+    </body>
+</html>

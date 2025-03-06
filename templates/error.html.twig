@@ -1,0 +1,62 @@
+{% extends 'layouts/default.html.twig' %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            {# Error Header #}
+            <div class="text-center mb-5">
+                <h1 class="display-1 fw-bold text-danger">{{ context.error.status }}</h1>
+                <h2 class="h3 mb-4">{{ context.error.title }}</h2>
+                <p class="lead text-muted">{{ context.error.detail }}</p>
+            </div>
+
+            {% if context.error.debug %}
+                {# Technical Details #}
+                <div class="card mb-4 border-danger">
+                    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                        <span>Technical Details</span>
+                        <span class="badge bg-light text-danger">{{ context.error.throwable.class }}</span>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-2">Reference URI:</dt>
+                            <dd class="col-sm-10">{{ context.error.type }}</dd>
+
+                            <dt class="col-sm-2">File:</dt>
+                            <dd class="col-sm-10"><code>{{ context.error.throwable.file }}:{{ context.error.throwable.line }}</code></dd>
+
+                            <dt class="col-sm-2">Request URI:</dt>
+                            <dd class="col-sm-10"><code>{{ context.error.instance }}</code></dd>
+
+                            <dt class="col-sm-2">Timestamp:</dt>
+                            <dd class="col-sm-10">{{ context.error.timestamp|date('Y-m-d H:i:s') }}</dd>
+
+                            <dt class="col-sm-2">Environment:</dt>
+                            <dd class="col-sm-10">{{ context.error.environment }}</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                {# Stack Trace #}
+                <div class="card mb-4">
+                    <div class="card-header">Stack Trace</div>
+                    <div class="card-body">
+                        <pre class="mb-0"><code>{{ context.error.throwable.traceAsString }}</code></pre>
+                    </div>
+                </div>
+
+                {% if context.error.throwable.previous %}
+                    {# Previous Exception #}
+                    <div class="card mb-4">
+                        <div class="card-header">Previous Exception</div>
+                        <div class="card-body">
+                            <pre class="mb-0"><code>{{ context.error.throwable.previous }}</code></pre>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

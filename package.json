@@ -1,0 +1,25 @@
+{
+  "name": "derafu-project",
+  "version": "1.0.0",
+  "description": "Derafu: Project - Slogan",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/derafu/project.git"
+  },
+  "keywords": [],
+  "author": "Esteban De La Fuente Rubio / Derafu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/derafu/project/issues"
+  },
+  "homepage": "https://github.com/derafu/project#readme",
+  "devDependencies": {
+    "vite": "^6.1.1",
+    "vite-plugin-sharp": "^1.0.0"
+  }
+}

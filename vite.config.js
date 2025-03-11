@@ -1,4 +1,5 @@
 import sharp from 'vite-plugin-sharp';
+import vitePluginD2 from 'vite-plugin-d2';
 
 export default {
     build: {
@@ -35,6 +36,10 @@ export default {
         }
     },
     plugins: [
+        vitePluginD2({
+            outputDir: 'assets/img',
+            layout: 'elk'
+        }),
         sharp({
             // General settings.
             force: true, // Process all images.

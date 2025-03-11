@@ -1,7 +1,11 @@
 # Derafu: Signature - Library for digital signatures
 
-[![CI Workflow](https://github.com/derafu/signature/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/derafu/signature/actions/workflows/ci.yml?query=branch%3Amain)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+![GitHub last commit](https://img.shields.io/github/last-commit/derafu/signature/main)
+![CI Workflow](https://github.com/derafu/signature/actions/workflows/ci.yml/badge.svg?branch=main&event=push)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/derafu/signature)
+![GitHub Issues](https://img.shields.io/github/issues-raw/derafu/signature)
+![Total Downloads](https://poser.pugx.org/derafu/signature/downloads)
+![Monthly Downloads](https://poser.pugx.org/derafu/signature/d/monthly)
 
 A comprehensive PHP library for creating and validating digital signatures, with special focus on XML digital signatures (XML-DSIG).
 

@@ -5,7 +5,7 @@
 
 {% block body %}
     {% block header %}
-        {% include 'components/header.html.twig' %}
+        <div id="header-container" class="sticky-top"></div>
     {% endblock %}
 
     {% block main %}
@@ -14,12 +14,21 @@
                 <main class="col-md-9">
                     {% block content %}{% endblock %}
                 </main>
-                <div class="col-md-2 py-4">
+                <div class="col-md-3 py-4">
                     <div class="list-group mb-4">
                         <li class="list-group-item d-flex justify-content-between align-items-start">
                             <div class="ms-2 me-auto">
-                              <div class="fw-bold">Package Info</div>
-                              <span class="smal text-muted">derafu/signature</span>
+                                <div class="fw-bold">Package Info</div>
+                                <span class="smal text-muted">
+                                    <a href="https://github.com/derafu/signature" target="_blank" class="link-secondary text-decoration-none">
+                                        <i class="fa-brands fa-github"></i>
+                                        derafu/signature
+                                    </a>
+                                </span>
+                                <div class="my-2">
+                                    <img src="https://img.shields.io/github/stars/derafu/signature" alt="GitHub Repo stars">
+                                    <img src="https://img.shields.io/github/forks/derafu/signature" alt="GitHub forks">
+                                </div>
                             </div>
                         </li>
                         <a href="/" class="list-group-item list-group-item-action {% if request.uri.path == '/' %}active{% endif %}">
@@ -55,6 +64,7 @@
     {% endblock %}
 
     {% block footer %}
-        {% include 'components/footer.html.twig' %}
+        <div id="footer-container"></div>
+        <script src="https://derafu.org/js/derafu.js"></script>
     {% endblock %}
 {% endblock %}

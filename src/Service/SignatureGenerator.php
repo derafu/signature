@@ -211,13 +211,8 @@ final class SignatureGenerator implements SignatureGeneratorInterface
     private function createSignatureNodeXml(
         SignatureInterface $signatureNode
     ): XmlDocumentInterface {
-        $xml = new XmlDocument();
-        $xml->formatOutput = false;
-        $xml = $this->xmlService->encode(
-            data: $signatureNode->getData(),
-            doc: $xml // Pass the Xml to assign formatOutput.
-        );
-
+        $xml = $this->xmlService->encode($signatureNode->getData());
+        $xml->setFormatOutput(false);
         $signatureNode->setXml($xml);
 
         return $signatureNode->getXml();

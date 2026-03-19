@@ -113,7 +113,7 @@ final class SignatureValidator implements SignatureValidatorInterface
         $signatureNode = new Signature();
 
         $signature = new XmlDocument();
-        $signature->formatOutput = false;
+        $signature->setFormatOutput(false);
         $signature->loadXml($xml);
 
         $data = $this->xmlService->decode($signature);

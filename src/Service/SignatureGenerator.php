@@ -154,7 +154,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
      * certificate. If a certificate was not previously provided, it can be
      * passed as an argument in the signature.
      *
-     * @return SignatureInterface The signature node that will be signed.
+     * @param SignatureInterface $signatureNode The signature node that will be signed.
      * @param CertificateInterface $certificate Digital certificate to use for signing.
      * @return SignatureInterface The signed signature node.
      * @throws LogicException If the conditions to sign are not met.

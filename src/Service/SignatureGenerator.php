@@ -124,7 +124,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // The digest will be made of a specific reference (ID) in the XML.
         if (!empty($reference)) {
             $xpath = '//*[@ID="' . ltrim($reference, '#') . '"]';
-            $dataToDigest = $doc->C14NWithIso88591Encoding($xpath);
+            $dataToDigest = $doc->C14NEncoded($xpath);
         }
         // When there is no reference, the digest is over the entire XML.
         // If the XML already has a "Signature" node within the root node, it
@@ -139,7 +139,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
             if ($signatureElement) {
                 $rootElement->removeChild($signatureElement);
             }
-            $dataToDigest = $docClone->C14NWithIso88591Encoding();
+            $dataToDigest = $docClone->C14NEncoded();
         }
 
         // Calculate the digest over the XML data in C14N format.
@@ -184,7 +184,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
 
         // Generate the string XML of the data that will be signed.
         $xpath = "//*[local-name()='Signature']/*[local-name()='SignedInfo']";
-        $signedInfoC14N = $nodeXml->C14NWithIso88591Encoding($xpath);
+        $signedInfoC14N = $nodeXml->C14NEncoded($xpath);
 
         // Generate the signature of the data, the tag `SignedInfo`.
         $signature = $this->sign(
@@ -195,7 +195,8 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // Assign the calculated signature to the signature node.
         $signatureNode->setSignatureValue($signature);
 
-        // Recreate the XML of the signature node.
+        // Regenerate the XML of the signature node after assigning the
+        // SignatureValue (setSignatureValue() invalidates the previous XML).
         $this->createSignatureNodeXml($signatureNode);
 
         // Return the signature node.

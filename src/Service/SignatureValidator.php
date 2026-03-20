@@ -173,18 +173,34 @@ final class SignatureValidator implements SignatureValidatorInterface
     public function validateXmlSignatureValue(
         SignatureInterface $signatureNode
     ): void {
+        // Validate that SignatureValue is present.
+        $signatureValue = $signatureNode->getSignatureValue();
+        if ($signatureValue === null) {
+            throw new SignatureException(
+                'The SignatureValue is missing from the signature node.'
+            );
+        }
+
+        // Validate that X509Certificate is present.
+        $x509Certificate = $signatureNode->getX509Certificate();
+        if ($x509Certificate === null) {
+            throw new SignatureException(
+                'The X509Certificate is missing from the signature node.'
+            );
+        }
+
         // Generate the string XML of the data that will be validated.
         $xpath = "//*[local-name()='Signature']/*[local-name()='SignedInfo']";
         $signedInfoC14N = $signatureNode
             ->getXml()
-            ->C14NWithIso88591Encoding($xpath)
+            ->C14NEncoded($xpath)
         ;
 
         // Validate the electronic signature.
         $isValid = $this->validate(
             $signedInfoC14N,
-            $signatureNode->getSignatureValue(),
-            $signatureNode->getX509Certificate()
+            $signatureValue,
+            $x509Certificate
         );
 
         // If the electronic signature is not valid, an exception is thrown.

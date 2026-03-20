@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<EnvioDTE>
+  <SetDTE ID="Derafu_SetDoc">
+    <Caratula>
+      <RutEmisor>76192083-9</RutEmisor>
+      <NmbEnvio>Envío de ejemplo con acentos: á é í ó ú ñ ü</NmbEnvio>
+    </Caratula>
+    <DTE version="1.0">
+      <Documento ID="T33F1">
+        <Encabezado>
+          <IdDoc>
+            <TipoDTE>33</TipoDTE>
+            <Folio>1</Folio>
+            <FchEmis>2016-02-13</FchEmis>
+          </IdDoc>
+        </Encabezado>
+      </Documento>
+    </DTE>
+  </SetDTE>
+</EnvioDTE>

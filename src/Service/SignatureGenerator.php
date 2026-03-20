@@ -19,6 +19,7 @@ use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Signature;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Contract\XmlServiceInterface;
+use Derafu\Xml\Exception\XmlException;
 use Derafu\Xml\XmlDocument;
 use LogicException;
 
@@ -124,7 +125,14 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // The digest will be made of a specific reference (ID) in the XML.
         if (!empty($reference)) {
             $xpath = '//*[@ID="' . ltrim($reference, '#') . '"]';
-            $dataToDigest = $doc->C14NEncoded($xpath);
+            $node = $doc->getNodes($xpath)->item(0);
+            if ($node === null) {
+                throw new XmlException(sprintf(
+                    'No element with ID "%s" was found in the XML document.',
+                    ltrim($reference, '#')
+                ));
+            }
+            $dataToDigest = $node->C14N();
         }
         // When there is no reference, the digest is over the entire XML.
         // If the XML already has a "Signature" node within the root node, it
@@ -139,7 +147,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
             if ($signatureElement) {
                 $rootElement->removeChild($signatureElement);
             }
-            $dataToDigest = $docClone->C14NEncoded();
+            $dataToDigest = $docClone->C14N();
         }
 
         // Calculate the digest over the XML data in C14N format.
@@ -183,8 +191,14 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         );
 
         // Generate the string XML of the data that will be signed.
+        // SignedInfo is always present because $nodeXml is freshly built from
+        // the Signature::$data template, which always declares it.
         $xpath = "//*[local-name()='Signature']/*[local-name()='SignedInfo']";
-        $signedInfoC14N = $nodeXml->C14NEncoded($xpath);
+        $signedInfoNode = $nodeXml->getNodes($xpath)->item(0);
+        if ($signedInfoNode === null) {
+            throw new LogicException('SignedInfo node is missing from the generated Signature XML.');
+        }
+        $signedInfoC14N = $signedInfoNode->C14N(false, false);
 
         // Generate the signature of the data, the tag `SignedInfo`.
         $signature = $this->sign(

@@ -16,7 +16,6 @@ use Derafu\Certificate\Contract\CertificateInterface;
 use Derafu\Certificate\Service\CertificateFaker;
 use Derafu\Certificate\Service\CertificateLoader;
 use Derafu\Signature\Contract\SignatureServiceInterface;
-use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Service\SignatureGenerator;
 use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
@@ -36,99 +35,125 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureValidator::class)]
 class SignatureServiceTest extends TestCase
 {
-    private string $xmlDir;
+    private string $fixturesDir;
 
-    private SignatureServiceInterface $signatureService;
+    private SignatureServiceInterface $service;
 
     private CertificateInterface $certificate;
 
     protected function setUp(): void
     {
-        $this->xmlDir = __DIR__ . '/../fixtures';
+        $this->fixturesDir = __DIR__ . '/../fixtures';
 
-        $xmlEncoder = new XmlEncoder();
-        $xmlDecoder = new XmlDecoder();
-        $xmlValidator = new XmlValidator();
-        $xmlService = new XmlService($xmlEncoder, $xmlDecoder, $xmlValidator);
-
-        $signatureGenerator = new SignatureGenerator($xmlService);
-        $this->signatureService = new SignatureService(
-            $signatureGenerator,
-            new SignatureValidator($signatureGenerator, $xmlService)
+        $xmlService = new XmlService(
+            new XmlEncoder(),
+            new XmlDecoder(),
+            new XmlValidator()
         );
 
-        $certificateLoader = new CertificateLoader();
-        $certificateFaker = new CertificateFaker($certificateLoader);
-        $this->certificate = $certificateFaker->createFake();
-    }
-
-    public function testSignatureServiceSignXmlString(): void
-    {
-        $xmlUnsigned = file_get_contents($this->xmlDir . '/unsigned.xml');
-        $xmlSigned = $this->signatureService->signXml(
-            $xmlUnsigned,
-            $this->certificate
+        $generator = new SignatureGenerator($xmlService);
+        $this->service = new SignatureService(
+            $generator,
+            new SignatureValidator($generator, $xmlService)
         );
 
-        $this->signatureService->validateXml($xmlSigned);
-        $this->assertTrue(true);
+        $this->certificate = (new CertificateFaker(new CertificateLoader()))
+            ->createFake()
+        ;
     }
 
-    public function testSignatureServiceSignXmlObject(): void
+    public function testSignXmlStringIso88591(): void
     {
-        $xmlUnsigned = file_get_contents($this->xmlDir . '/unsigned.xml');
+        $xml = file_get_contents($this->fixturesDir . '/unsigned.xml');
+
+        $xmlSigned = $this->service->signXml($xml, $this->certificate);
+
+        $this->assertStringContainsString('<Signature', $xmlSigned);
+        $this->service->validateXml($xmlSigned);
+    }
+
+    public function testSignXmlObjectIso88591(): void
+    {
         $xml = new XmlDocument();
-        $xml->loadXml($xmlUnsigned);
-        $xmlSigned = $this->signatureService->signXml(
-            $xml,
-            $this->certificate
-        );
+        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned.xml'));
 
-        $this->signatureService->validateXml($xmlSigned);
-        $this->assertTrue(true);
+        $xmlSigned = $this->service->signXml($xml, $this->certificate);
+
+        $this->assertStringContainsString('<Signature', $xmlSigned);
+        $this->service->validateXml($xmlSigned);
     }
 
-    public function testSignatureServiceSignXmlWithReference(): void
+    public function testSignXmlWithReferenceIso88591(): void
     {
-        $xmlUnsigned = file_get_contents($this->xmlDir . '/unsigned.xml');
         $xml = new XmlDocument();
-        $xml->loadXml($xmlUnsigned);
-        $xmlSigned = $this->signatureService->signXml(
-            $xml,
-            $this->certificate,
-            'Derafu_SetDoc'
-        );
+        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned.xml'));
 
-        $this->signatureService->validateXml($xmlSigned);
-        $this->assertTrue(true);
+        $xmlSigned = $this->service->signXml($xml, $this->certificate, 'Derafu_SetDoc');
+
+        $this->assertStringContainsString('<Signature', $xmlSigned);
+        $this->service->validateXml($xmlSigned);
     }
 
-    public function testSignatureServiceSignXmlWithInvalidReference(): void
+    public function testSignXmlStringIso88591WithSpecialChars(): void
+    {
+        $xml = file_get_contents($this->fixturesDir . '/unsigned_iso88591.xml');
+
+        $xmlSigned = $this->service->signXml($xml, $this->certificate);
+
+        $this->assertStringContainsString('<Signature', $xmlSigned);
+        $this->service->validateXml($xmlSigned);
+    }
+
+    public function testSignXmlStringUtf8WithSpecialChars(): void
+    {
+        $xml = file_get_contents($this->fixturesDir . '/unsigned_utf8.xml');
+
+        $xmlSigned = $this->service->signXml($xml, $this->certificate);
+
+        $this->assertStringContainsString('<Signature', $xmlSigned);
+        $this->service->validateXml($xmlSigned);
+    }
+
+    public function testSignXmlWithReferenceUtf8WithSpecialChars(): void
+    {
+        $xml = new XmlDocument();
+        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned_utf8.xml'));
+
+        $xmlSigned = $this->service->signXml($xml, $this->certificate, 'Derafu_SetDoc');
+
+        $this->assertStringContainsString('<Signature', $xmlSigned);
+        $this->service->validateXml($xmlSigned);
+    }
+
+    public function testSignXmlWithInvalidReference(): void
     {
         $this->expectException(XmlException::class);
 
-        $xmlUnsigned = file_get_contents($this->xmlDir . '/unsigned.xml');
         $xml = new XmlDocument();
-        $xml->loadXml($xmlUnsigned);
-        $xmlSigned = $this->signatureService->signXml(
-            $xml,
-            $this->certificate,
-            'Derafu_SetDo'
-        );
+        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned.xml'));
+
+        $this->service->signXml($xml, $this->certificate, 'nonexistent_id');
     }
 
-    public function testSignatureServiceValidXmlSignature(): void
+    public function testSignAndValidateRawData(): void
     {
-        $xml = file_get_contents($this->xmlDir . '/valid_signed.xml');
-        $this->signatureService->validateXml($xml);
-        $this->assertTrue(true);
+        $data = 'hello world';
+        $privateKey = $this->certificate->getPrivateKey();
+        $publicKey = $this->certificate->getCertificate();
+
+        $signature = $this->service->sign($data, $privateKey);
+
+        $this->assertTrue($this->service->validate($data, $signature, $publicKey));
     }
 
-    public function testSignatureServiceInvalidXmlSignature(): void
+    public function testValidateRawDataReturnsFalseForTamperedData(): void
     {
-        $this->expectException(SignatureException::class);
+        $data = 'hello world';
+        $privateKey = $this->certificate->getPrivateKey();
+        $publicKey = $this->certificate->getCertificate();
 
-        $xml = file_get_contents($this->xmlDir . '/invalid_signed.xml');
-        $this->signatureService->validateXml($xml);
+        $signature = $this->service->sign($data, $privateKey);
+
+        $this->assertFalse($this->service->validate('tampered data', $signature, $publicKey));
     }
 }

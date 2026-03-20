@@ -149,22 +149,75 @@ final class SignatureValidator implements SignatureValidatorInterface
 
         // Get the digest value that comes in the XML (in the signature node).
         $digestValueXml = $signatureNode->getDigestValue();
+        $reference = $signatureNode->getReference();
 
         // Calculate the digest value from the XML document.
-        $digestValueCalculated = $this->generator->generateXmlDigestValue(
-            $doc,
-            $signatureNode->getReference()
-        );
+        $digestValueCalculated = $this->generator->generateXmlDigestValue($doc, $reference);
+
+        // If primary digest doesn't match and we have a reference, try alternative
+        // C14N approaches used by different Chilean DTE signing systems:
+        //   - Exclusive C14N (used by some commercial systems, e.g. CCG SPA)
+        //   - Strip inherited namespaces + standard C14N (used by LibreDTE, SII official examples)
+        if ($digestValueXml !== $digestValueCalculated && !empty($reference)) {
+            $digestValueCalculated = $this->findMatchingDigestValue(
+                $doc,
+                $reference,
+                $digestValueXml
+            ) ?? $digestValueCalculated;
+        }
 
         // If the digest values do not match, it is not valid.
         if ($digestValueXml !== $digestValueCalculated) {
             throw new SignatureException(sprintf(
                 'The DigestValue that comes in the XML "%s" for the reference "%s" does not match the calculated value when validating "%s". The data of the reference could have been manipulated after being signed.',
                 $digestValueXml,
-                $signatureNode->getReference(),
+                $reference,
                 $digestValueCalculated
             ));
         }
+    }
+
+    /**
+     * Tries alternative C14N approaches to find one that matches the expected digest.
+     *
+     * Different Chilean DTE signing systems compute DigestValue using different
+     * C14N variants. This method tries exclusive C14N and strip-inherited-namespaces
+     * C14N and returns the matching value, or null if none matches.
+     */
+    private function findMatchingDigestValue(
+        XmlDocument $doc,
+        string $reference,
+        string $expected
+    ): ?string {
+        $xpath = '//*[@ID="' . ltrim($reference, '#') . '"]';
+        $node = $doc->getNodes($xpath)->item(0);
+        if ($node === null) {
+            return null;
+        }
+
+        // Try exclusive C14N (only includes visibly-utilized namespaces).
+        $hash = base64_encode(sha1($node->C14N(true, false), true));
+        if ($hash === $expected) {
+            return $hash;
+        }
+
+        // Try strip-inherited-namespaces + standard C14N: serialize the node,
+        // remove all xmlns declarations (inherited from ancestors), re-parse, C14N.
+        // This matches how LibreDTE and the SII's official example DTE are signed.
+        $newDoc = new XmlDocument();
+        $newDoc->appendChild($newDoc->importNode($node, true));
+        $serialized = $newDoc->saveXml($newDoc->documentElement);
+        $stripped = (string) preg_replace('/ xmlns(?::[^=]*)?\s*=\s*"[^"]*"/', '', $serialized);
+        $stripped = '<?xml version="1.0" encoding="UTF-8"?>' . $stripped;
+        $strippedDoc = new XmlDocument();
+        if (@$strippedDoc->loadXml($stripped) && $strippedDoc->documentElement) {
+            $hash = base64_encode(sha1($strippedDoc->documentElement->C14N(false, false), true));
+            if ($hash === $expected) {
+                return $hash;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -190,18 +243,22 @@ final class SignatureValidator implements SignatureValidatorInterface
         }
 
         // Generate the string XML of the data that will be validated.
+        // Standard C14N is tried first; exclusive C14N is used as fallback since
+        // some signing systems (e.g. certain commercial DTE issuers) use it.
         $xpath = "//*[local-name()='Signature']/*[local-name()='SignedInfo']";
-        $signedInfoC14N = $signatureNode
-            ->getXml()
-            ->C14NEncoded($xpath)
-        ;
+        $signedInfoNode = $signatureNode->getXml()->getNodes($xpath)->item(0);
+        $signedInfoC14N = $signedInfoNode !== null
+            ? $signedInfoNode->C14N(false, false)
+            : $signatureNode->getXml()->C14NEncoded($xpath);
 
         // Validate the electronic signature.
-        $isValid = $this->validate(
-            $signedInfoC14N,
-            $signatureValue,
-            $x509Certificate
-        );
+        $isValid = $this->validate($signedInfoC14N, $signatureValue, $x509Certificate);
+
+        // If standard C14N fails, try exclusive C14N as fallback.
+        if (!$isValid && $signedInfoNode !== null) {
+            $signedInfoC14N = $signedInfoNode->C14N(true, false);
+            $isValid = $this->validate($signedInfoC14N, $signatureValue, $x509Certificate);
+        }
 
         // If the electronic signature is not valid, an exception is thrown.
         if (!$isValid) {

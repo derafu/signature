@@ -78,7 +78,9 @@ class SignatureChileTest extends TestCase
         $files = glob($dir . '*.xml') ?: [];
 
         if (empty($files)) {
-            return [];
+            return [
+                'no_files' => [''],
+            ];
         }
 
         $cases = [];
@@ -103,6 +105,10 @@ class SignatureChileTest extends TestCase
         string $xmlFile,
         array $assertions = []
     ): void {
+        if ($xmlFile === '') {
+            $this->markTestSkipped('No XML files found in the fixtures directory.');
+        }
+
         $xml = file_get_contents($xmlFile);
 
         $this->service->validateXml($xml);

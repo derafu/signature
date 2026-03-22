@@ -88,9 +88,9 @@ final class SignatureService implements SignatureServiceInterface
     /**
      * {@inheritDoc}
      */
-    public function validateXml(XmlDocumentInterface|string $xml): void
+    public function validateXml(XmlDocumentInterface|string $xml): array
     {
-        $this->validator->validateXml($xml);
+        return $this->validator->validateXml($xml);
     }
 
     /**

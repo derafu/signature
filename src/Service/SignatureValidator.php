@@ -18,6 +18,7 @@ use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Signature\Contract\SignatureValidatorInterface;
 use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Signature;
+use Derafu\Signature\SignatureValidationResult;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Contract\XmlServiceInterface;
 use Derafu\Xml\XmlDocument;
@@ -63,25 +64,26 @@ final class SignatureValidator implements SignatureValidatorInterface
     /**
      * {@inheritDoc}
      */
-    public function validateXml(XmlDocumentInterface|string $xml): void
+    public function validateXml(XmlDocumentInterface|string $xml): array
     {
-        // If an Xml object is passed, it is converted to a string.
-        if (!is_string($xml)) {
-            $xml = $xml->saveXml();
+        // If a string is passed, it is loaded into an XML document.
+        if (is_string($xml)) {
+            $doc = new XmlDocument();
+            $doc->loadXml($xml);
+            if ($doc->getDocumentElement() === null) {
+                throw new SignatureException(
+                    'Could not get the documentElement from the XML to validate its signature (possible malformed XML).'
+                );
+            }
         }
-
-        // Load the string XML into an XML document.
-        $doc = new XmlDocument();
-        $doc->loadXml($xml);
-        if (!$doc->documentElement) {
-            throw new SignatureException(
-                'Could not get the documentElement from the XML to validate its signature (possible malformed XML).'
-            );
+        // If an Xml object is passed, it is used directly.
+        else {
+            $doc = $xml;
         }
 
         // Search for all elements that are tag Signature.
         // An XML document can have more than one signature.
-        $signaturesElements = $doc->documentElement->getElementsByTagName(
+        $signaturesElements = $doc->getDocumentElement()->getElementsByTagName(
             'Signature'
         );
 
@@ -92,17 +94,27 @@ final class SignatureValidator implements SignatureValidatorInterface
             );
         }
 
-        // Iterate each signature found.
+        // Single pass: parse and validate each signature node. If validation
+        // fails, the error is captured in the result instead of throwing, so
+        // callers can always inspect the signer's certificate data.
+        $results = [];
         foreach ($signaturesElements as $signatureElement) {
-            // Build the signature node instance.
             $signatureNode = $this->createSignatureNode(
                 $signatureElement->C14N()
             );
 
-            // Validate the electronic signature node.
-            $this->validateXmlDigestValue($doc, $signatureNode);
-            $this->validateXmlSignatureValue($signatureNode);
+            $error = null;
+            try {
+                $this->validateXmlDigestValue($doc, $signatureNode);
+                $this->validateXmlSignatureValue($signatureNode);
+            } catch (SignatureException $e) {
+                $error = $e;
+            }
+
+            $results[] = new SignatureValidationResult($signatureNode, $error);
         }
+
+        return $results;
     }
 
     /**

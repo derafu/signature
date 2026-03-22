@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Signature\Contract;
 
 use Derafu\Signature\Exception\SignatureException;
+use Derafu\Signature\SignatureValidationResult;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 
 /**
@@ -41,11 +42,18 @@ interface SignatureValidatorInterface
     /**
      * Validate the validity of an XML signature using RSA and SHA1.
      *
+     * Returns one `SignatureValidationResult` per signature node found. Each
+     * result carries the parsed node (with certificate data) and the
+     * validation error, if any. Callers must check `$result->isValid()` to
+     * determine whether each signature passed.
+     *
+     * Only throws for structural problems (malformed XML, no signatures found).
+     *
      * @param XmlDocumentInterface|string $xml XML string to be validated.
-     * @return void
-     * @throws SignatureException If there was an error while validating.
+     * @return array<SignatureValidationResult> One result per signature node.
+     * @throws SignatureException If the XML is malformed or has no signatures.
      */
-    public function validateXml(XmlDocumentInterface|string $xml): void;
+    public function validateXml(XmlDocumentInterface|string $xml): array;
 
     /**
      * Creates the `Xml` instance of `Signature` from a string XML with the

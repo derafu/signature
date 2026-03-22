@@ -18,6 +18,7 @@ use Derafu\Signature\Service\SignatureGenerator;
 use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
+use Derafu\Signature\SignatureValidationResult;
 use Derafu\Xml\Service\XmlDecoder;
 use Derafu\Xml\Service\XmlEncoder;
 use Derafu\Xml\Service\XmlService;
@@ -29,6 +30,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureService::class)]
 #[CoversClass(SignatureGenerator::class)]
 #[CoversClass(SignatureValidator::class)]
+#[CoversClass(SignatureValidationResult::class)]
 class SignatureValidatorTest extends TestCase
 {
     private string $fixturesDir;
@@ -56,8 +58,13 @@ class SignatureValidatorTest extends TestCase
     {
         $xml = file_get_contents($this->fixturesDir . '/valid_signed.xml');
 
-        $this->service->validateXml($xml);
-        $this->assertTrue(true);
+        $results = $this->service->validateXml($xml);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+            $this->assertNull($result->getError());
+        }
     }
 
     public function testValidateXmlWithoutSignatureThrows(): void
@@ -68,20 +75,36 @@ class SignatureValidatorTest extends TestCase
         $this->service->validateXml($xml);
     }
 
-    public function testValidateXmlWithInvalidDigestValueThrows(): void
+    public function testValidateXmlWithInvalidDigestValueReturnsInvalidResult(): void
     {
-        $this->expectException(SignatureException::class);
-
         $xml = file_get_contents($this->fixturesDir . '/invalid_signed.xml');
-        $this->service->validateXml($xml);
+
+        $results = $this->service->validateXml($xml);
+
+        $this->assertNotEmpty($results);
+        $invalidResults = array_filter($results, fn ($r) => !$r->isValid());
+        $this->assertNotEmpty($invalidResults);
+
+        foreach ($invalidResults as $result) {
+            $this->assertFalse($result->isValid());
+            $this->assertInstanceOf(SignatureException::class, $result->getError());
+        }
     }
 
-    public function testValidateXmlWithInvalidSignatureValueThrows(): void
+    public function testValidateXmlWithInvalidSignatureValueReturnsInvalidResult(): void
     {
-        $this->expectException(SignatureException::class);
-
         $xml = file_get_contents($this->fixturesDir . '/invalid_signature_value.xml');
-        $this->service->validateXml($xml);
+
+        $results = $this->service->validateXml($xml);
+
+        $this->assertNotEmpty($results);
+        $invalidResults = array_filter($results, fn ($r) => !$r->isValid());
+        $this->assertNotEmpty($invalidResults);
+
+        foreach ($invalidResults as $result) {
+            $this->assertFalse($result->isValid());
+            $this->assertInstanceOf(SignatureException::class, $result->getError());
+        }
     }
 
     public function testValidateXmlSignatureValueWithMissingSignatureValueThrows(): void

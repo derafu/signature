@@ -20,6 +20,7 @@ use Derafu\Signature\Service\SignatureGenerator;
 use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
+use Derafu\Signature\SignatureValidationResult;
 use Derafu\Xml\Exception\XmlException;
 use Derafu\Xml\Service\XmlDecoder;
 use Derafu\Xml\Service\XmlEncoder;
@@ -33,6 +34,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureService::class)]
 #[CoversClass(SignatureGenerator::class)]
 #[CoversClass(SignatureValidator::class)]
+#[CoversClass(SignatureValidationResult::class)]
 class SignatureServiceTest extends TestCase
 {
     private string $fixturesDir;

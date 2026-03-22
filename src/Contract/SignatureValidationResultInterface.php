@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Signature\Contract;
 
 use Derafu\Signature\Exception\SignatureException;
+use NoDiscard;
 
 /**
  * Interface for the class that represents the result of the validation of an
@@ -26,6 +27,7 @@ interface SignatureValidationResultInterface
      * @return bool `true` if the signature is valid (no validation error),
      * `false` otherwise.
      */
+    #[NoDiscard()]
     public function isValid(): bool;
 
     /**
@@ -33,6 +35,7 @@ interface SignatureValidationResultInterface
      *
      * @return SignatureInterface The parsed signature node.
      */
+    #[NoDiscard()]
     public function getSignatureNode(): SignatureInterface;
 
     /**
@@ -41,5 +44,6 @@ interface SignatureValidationResultInterface
      * @return SignatureException|null The validation error, or `null` if the
      * signature is valid.
      */
+    #[NoDiscard()]
     public function getError(): ?SignatureException;
 }

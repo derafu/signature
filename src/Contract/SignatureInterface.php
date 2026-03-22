@@ -15,6 +15,7 @@ namespace Derafu\Signature\Contract;
 use Derafu\Certificate\Contract\CertificateInterface;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use LogicException;
+use NoDiscard;
 
 /**
  * Interface for the class that represents the electronic signature of an XML.
@@ -36,6 +37,7 @@ interface SignatureInterface
      *
      * @return array
      */
+    #[NoDiscard()]
     public function getData(): array;
 
     /**
@@ -69,6 +71,7 @@ interface SignatureInterface
      * `Signature` node.
      * @throws LogicException When the `Xml` of the node is not available.
      */
+    #[NoDiscard()]
     public function getXml(): XmlDocumentInterface;
 
     /**
@@ -78,6 +81,7 @@ interface SignatureInterface
      * @return string|null The reference associated with the `Signature` node,
      * or `null` if it does not have.
      */
+    #[NoDiscard()]
     public function getReference(): ?string;
 
     /**
@@ -85,6 +89,7 @@ interface SignatureInterface
      *
      * @return string|null The DigestValue, or `null` if it is not defined.
      */
+    #[NoDiscard()]
     public function getDigestValue(): ?string;
 
     /**
@@ -93,6 +98,7 @@ interface SignatureInterface
      * @return string|null The X509 certificate in base64, or `null` if it is
      * not defined.
      */
+    #[NoDiscard()]
     public function getX509Certificate(): ?string;
 
     /**
@@ -109,5 +115,6 @@ interface SignatureInterface
      * @return string|null The calculated signature value in base64, or `null`
      * if it is not defined.
      */
+    #[NoDiscard()]
     public function getSignatureValue(): ?string;
 }

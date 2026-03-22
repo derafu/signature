@@ -15,6 +15,7 @@ namespace Derafu\Signature\Contract;
 use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\SignatureValidationResult;
 use Derafu\Xml\Contract\XmlDocumentInterface;
+use NoDiscard;
 
 /**
  * Interface for the class that handles the validation of electronic signatures.
@@ -32,6 +33,7 @@ interface SignatureValidatorInterface
      * @return bool `true` if the signature is valid, `false` if it is invalid.
      * @throws SignatureException If there was an error while validating.
      */
+    #[NoDiscard()]
     public function validate(
         string $data,
         string $signature,
@@ -53,6 +55,7 @@ interface SignatureValidatorInterface
      * @return array<SignatureValidationResult> One result per signature node.
      * @throws SignatureException If the XML is malformed or has no signatures.
      */
+    #[NoDiscard()]
     public function validateXml(XmlDocumentInterface|string $xml): array;
 
     /**
@@ -61,6 +64,7 @@ interface SignatureValidatorInterface
      *
      * @param string $xml String with the XML of the `Signature` node.
      */
+    #[NoDiscard()]
     public function createSignatureNode(string $xml): SignatureInterface;
 
     /**

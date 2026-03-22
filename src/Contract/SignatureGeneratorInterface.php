@@ -16,6 +16,7 @@ use Derafu\Certificate\Contract\CertificateInterface;
 use Derafu\Signature\Exception\SignatureException;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Exception\XmlException;
+use NoDiscard;
 
 /**
  * Interface for the class that handles the generation of digital signatures.
@@ -31,6 +32,7 @@ interface SignatureGeneratorInterface
      * (default SHA1).
      * @return string Digital signature in base64.
      */
+    #[NoDiscard()]
     public function sign(
         string $data,
         string $privateKey,
@@ -49,6 +51,7 @@ interface SignatureGeneratorInterface
      * "Signature" tag at the end of the XML (last element within the root node).
      * @throws SignatureException If any problem occurs while signing.
      */
+    #[NoDiscard()]
     public function signXml(
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
@@ -67,6 +70,7 @@ interface SignatureGeneratorInterface
      * @return string Data of the XML that must be digested.
      * @throws XmlException If the reference is not found in the XML.
      */
+    #[NoDiscard()]
     public function generateXmlDigestValue(
         XmlDocumentInterface $doc,
         ?string $reference = null

@@ -55,7 +55,8 @@ interface SignatureGeneratorInterface
     public function signXml(
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
-        ?string $reference = null
+        ?string $reference = null,
+        ?string $signatureNamespace = null
     ): string;
 
     /**

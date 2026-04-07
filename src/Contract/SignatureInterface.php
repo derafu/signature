@@ -53,7 +53,8 @@ interface SignatureInterface
     public function configureSignatureData(
         string $digestValue,
         CertificateInterface $certificate,
-        ?string $reference = null
+        ?string $reference = null,
+        ?string $signatureNamespace = null
     ): static;
 
     /**

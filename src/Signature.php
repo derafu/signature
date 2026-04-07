@@ -132,13 +132,20 @@ final class Signature implements SignatureInterface
     public function configureSignatureData(
         string $digestValue,
         CertificateInterface $certificate,
-        ?string $reference = null
+        ?string $reference = null,
+        ?string $signatureNamespace = null
     ): static {
-        return $this
+        $instance = $this
             ->setReference($reference)
             ->setDigestValue($digestValue)
             ->setCertificate($certificate)
         ;
+
+        if ($signatureNamespace !== null) {
+            $instance->setSignatureNamespace($signatureNamespace);
+        }
+
+        return $instance;
     }
 
     /**
@@ -222,6 +229,27 @@ final class Signature implements SignatureInterface
         $signatureValue = $this->data['Signature']['SignatureValue'];
 
         return $signatureValue ?: null;
+    }
+
+    /**
+     * Sets the namespace of the `Signature` element.
+     *
+     * By default the standard XML DSIG namespace is used. Some systems (e.g.
+     * the Chilean SII for boleta books) require a different namespace on the
+     * `Signature` element. Setting it here ensures that the C14N of
+     * `SignedInfo` is computed with the correct namespace both at signing and
+     * at validation time, keeping the signature mathematically consistent.
+     *
+     * @param string $namespace The namespace URI to use.
+     * @return static The current instance for method chaining.
+     */
+    private function setSignatureNamespace(string $namespace): static
+    {
+        $this->data['Signature']['@attributes']['xmlns'] = $namespace;
+
+        $this->invalidateXml();
+
+        return $this;
     }
 
     /**

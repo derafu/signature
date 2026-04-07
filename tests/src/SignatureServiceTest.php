@@ -127,6 +127,33 @@ class SignatureServiceTest extends TestCase
         $this->service->validateXml($xmlSigned);
     }
 
+    public function testSignXmlWithCustomSignatureNamespace(): void
+    {
+        $xml = new XmlDocument();
+        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned.xml'));
+
+        $customNamespace = 'http://www.sii.cl/SiiDte';
+        $xmlSigned = $this->service->signXml(
+            $xml,
+            $this->certificate,
+            'Derafu_SetDoc',
+            $customNamespace
+        );
+
+        // The Signature element must carry the custom namespace.
+        $this->assertStringContainsString(
+            '<Signature xmlns="' . $customNamespace . '"',
+            $xmlSigned
+        );
+
+        // The signature must remain mathematically valid with the custom namespace.
+        $results = $this->service->validateXml($xmlSigned);
+        $this->assertTrue(
+            $results[0]->isValid(),
+            $results[0]->getError()?->getMessage() ?? 'Signature is not valid.'
+        );
+    }
+
     public function testSignXmlWithInvalidReference(): void
     {
         $this->expectException(XmlException::class);

@@ -53,9 +53,10 @@ final class SignatureService implements SignatureServiceInterface
     public function signXml(
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
-        ?string $reference = null
+        ?string $reference = null,
+        ?string $signatureNamespace = null
     ): string {
-        return $this->generator->signXml($xml, $certificate, $reference);
+        return $this->generator->signXml($xml, $certificate, $reference, $signatureNamespace);
     }
 
     /**

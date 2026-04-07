@@ -1,0 +1,19 @@
+services:
+
+    # Default configuration for services.
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    # Derafu Signature Service (entry point for the library).
+    Derafu\Signature\Contract\SignatureServiceInterface:
+        class: Derafu\Signature\Service\SignatureService
+
+    # Derafu Signature Generator Service.
+    Derafu\Signature\Contract\SignatureGeneratorInterface:
+        class: Derafu\Signature\Service\SignatureGenerator
+
+    # Derafu Signature Validator Service.
+    Derafu\Signature\Contract\SignatureValidatorInterface:
+        class: Derafu\Signature\Service\SignatureValidator

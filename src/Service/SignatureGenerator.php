@@ -83,7 +83,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // Load the XML that will be signed.
         $doc = new XmlDocument();
         $doc->loadXml($xml);
-        if (!$doc->documentElement) {
+        if (!$doc->getDomDocument()->documentElement) {
             throw new SignatureException(
                 'Could not get the documentElement from the XML to sign (possible malformed XML).'
             );
@@ -109,8 +109,8 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         $xmlSignature = $signatureNode->getXml()->getXml();
 
         // Add the XML signature in the Signature node.
-        $signatureElement = $doc->createElement('Signature', '');
-        $doc->documentElement->appendChild($signatureElement);
+        $signatureElement = $doc->getDomDocument()->createElement('Signature', '');
+        $doc->getDomDocument()->documentElement->appendChild($signatureElement);
         $xmlSigned = str_replace('<Signature/>', $xmlSignature, $doc->saveXml());
 
         // Return the string XML of the signed XML document.

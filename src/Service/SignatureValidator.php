@@ -153,7 +153,7 @@ final class SignatureValidator implements SignatureValidatorInterface
         // Load the string XML into an XML document.
         $doc = new XmlDocument();
         $doc->loadXml($xml);
-        if (!$doc->documentElement) {
+        if (!$doc->getDomDocument()->documentElement) {
             throw new SignatureException(
                 'Could not get the documentElement from the XML to validate its signature (possible malformed XML).'
             );
@@ -217,13 +217,18 @@ final class SignatureValidator implements SignatureValidatorInterface
         // remove all xmlns declarations (inherited from ancestors), re-parse, C14N.
         // This matches how LibreDTE and the SII's official example DTE are signed.
         $newDoc = new XmlDocument();
-        $newDoc->appendChild($newDoc->importNode($node, true));
-        $serialized = $newDoc->saveXml($newDoc->documentElement);
+        $newDoc->getDomDocument()->appendChild($newDoc->getDomDocument()->importNode($node, true));
+        $serialized = $newDoc->saveXml($newDoc->getDomDocument()->documentElement);
         $stripped = (string) preg_replace('/ xmlns(?::[^=]*)?\s*=\s*"[^"]*"/', '', $serialized);
         $stripped = '<?xml version="1.0" encoding="UTF-8"?>' . $stripped;
         $strippedDoc = new XmlDocument();
-        if (@$strippedDoc->loadXml($stripped) && $strippedDoc->documentElement) {
-            $hash = base64_encode(sha1($strippedDoc->documentElement->C14N(false, false), true));
+        if (@$strippedDoc->loadXml($stripped) && $strippedDoc->getDomDocument()->documentElement) {
+            $hash = base64_encode(
+                sha1(
+                    $strippedDoc->getDomDocument()->documentElement->C14N(false, false),
+                    true
+                )
+            );
             if ($hash === $expected) {
                 return $hash;
             }
@@ -264,12 +269,20 @@ final class SignatureValidator implements SignatureValidatorInterface
             : $signatureNode->getXml()->C14NEncoded($xpath);
 
         // Validate the electronic signature.
-        $isValid = $this->validate($signedInfoC14N, $signatureValue, $x509Certificate);
+        $isValid = $this->validate(
+            $signedInfoC14N,
+            $signatureValue,
+            $x509Certificate
+        );
 
         // If standard C14N fails, try exclusive C14N as fallback.
         if (!$isValid && $signedInfoNode !== null) {
             $signedInfoC14N = $signedInfoNode->C14N(true, false);
-            $isValid = $this->validate($signedInfoC14N, $signatureValue, $x509Certificate);
+            $isValid = $this->validate(
+                $signedInfoC14N,
+                $signatureValue,
+                $x509Certificate
+            );
         }
 
         // If the electronic signature is not valid, an exception is thrown.

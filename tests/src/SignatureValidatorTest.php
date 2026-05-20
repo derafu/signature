@@ -72,7 +72,12 @@ class SignatureValidatorTest extends TestCase
         $this->expectException(SignatureException::class);
 
         $xml = file_get_contents($this->fixturesDir . '/unsigned.xml');
-        $this->service->validateXml($xml);
+        $results = $this->service->validateXml($xml);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
     }
 
     public function testValidateXmlWithInvalidDigestValueReturnsInvalidResult(): void

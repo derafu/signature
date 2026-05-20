@@ -71,7 +71,12 @@ class SignatureServiceTest extends TestCase
         $xmlSigned = $this->service->signXml($xml, $this->certificate);
 
         $this->assertStringContainsString('<Signature', $xmlSigned);
-        $this->service->validateXml($xmlSigned);
+        $results = $this->service->validateXml($xmlSigned);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
     }
 
     public function testSignXmlObjectIso88591(): void
@@ -82,7 +87,12 @@ class SignatureServiceTest extends TestCase
         $xmlSigned = $this->service->signXml($xml, $this->certificate);
 
         $this->assertStringContainsString('<Signature', $xmlSigned);
-        $this->service->validateXml($xmlSigned);
+        $results = $this->service->validateXml($xmlSigned);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
     }
 
     public function testSignXmlWithReferenceIso88591(): void
@@ -93,7 +103,12 @@ class SignatureServiceTest extends TestCase
         $xmlSigned = $this->service->signXml($xml, $this->certificate, 'Derafu_SetDoc');
 
         $this->assertStringContainsString('<Signature', $xmlSigned);
-        $this->service->validateXml($xmlSigned);
+        $results = $this->service->validateXml($xmlSigned);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
     }
 
     public function testSignXmlStringIso88591WithSpecialChars(): void
@@ -103,7 +118,12 @@ class SignatureServiceTest extends TestCase
         $xmlSigned = $this->service->signXml($xml, $this->certificate);
 
         $this->assertStringContainsString('<Signature', $xmlSigned);
-        $this->service->validateXml($xmlSigned);
+        $results = $this->service->validateXml($xmlSigned);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
     }
 
     public function testSignXmlStringUtf8WithSpecialChars(): void
@@ -113,7 +133,12 @@ class SignatureServiceTest extends TestCase
         $xmlSigned = $this->service->signXml($xml, $this->certificate);
 
         $this->assertStringContainsString('<Signature', $xmlSigned);
-        $this->service->validateXml($xmlSigned);
+        $results = $this->service->validateXml($xmlSigned);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
     }
 
     public function testSignXmlWithReferenceUtf8WithSpecialChars(): void
@@ -124,7 +149,12 @@ class SignatureServiceTest extends TestCase
         $xmlSigned = $this->service->signXml($xml, $this->certificate, 'Derafu_SetDoc');
 
         $this->assertStringContainsString('<Signature', $xmlSigned);
-        $this->service->validateXml($xmlSigned);
+        $results = $this->service->validateXml($xmlSigned);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
     }
 
     public function testSignXmlWithCustomSignatureNamespace(): void
@@ -148,6 +178,8 @@ class SignatureServiceTest extends TestCase
 
         // The signature must remain mathematically valid with the custom namespace.
         $results = $this->service->validateXml($xmlSigned);
+
+        $this->assertNotEmpty($results);
         $this->assertTrue(
             $results[0]->isValid(),
             $results[0]->getError()?->getMessage() ?? 'Signature is not valid.'
@@ -161,7 +193,8 @@ class SignatureServiceTest extends TestCase
         $xml = new XmlDocument();
         $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned.xml'));
 
-        $this->service->signXml($xml, $this->certificate, 'nonexistent_id');
+        $signature = $this->service->signXml($xml, $this->certificate, 'nonexistent_id');
+        // $signature is not used because the exception is thrown before it is returned.
     }
 
     public function testSignAndValidateRawData(): void

@@ -113,7 +113,12 @@ class SignatureChileTest extends TestCase
 
         $xml = file_get_contents($xmlFile);
 
-        $this->service->validateXml($xml);
+        $results = $this->service->validateXml($xml);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
 
         // Generic assertion: if we reach here, validation passed.
         $this->assertTrue(true);
@@ -185,7 +190,12 @@ class SignatureChileTest extends TestCase
         $this->assertStringContainsString('<Signature', $xmlSigned);
 
         // Validate the signature.
-        $this->service->validateXml($xmlSigned);
+        $results = $this->service->validateXml($xmlSigned);
+
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
 
         // Verify digest stability: signing the same XML again produces the
         // same DigestValue (canonicalization is deterministic).

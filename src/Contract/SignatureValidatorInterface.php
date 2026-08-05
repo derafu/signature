@@ -27,7 +27,8 @@ interface SignatureValidatorInterface
      *
      * @param string $data Data to be verified.
      * @param string $signature Digital signature of the data in base64.
-     * @param string $publicKey Public key of the signature of the data.
+     * @param string $certificate Certificate (or raw public key) of the
+     * signer, used to verify the signature.
      * @param string|int $signatureAlgorithm Algorithm used to sign
      * (default SHA1).
      * @return bool `true` if the signature is valid, `false` if it is invalid.
@@ -37,7 +38,7 @@ interface SignatureValidatorInterface
     public function validate(
         string $data,
         string $signature,
-        string $publicKey,
+        string $certificate,
         string|int $signatureAlgorithm = OPENSSL_ALGO_SHA1
     ): bool;
 

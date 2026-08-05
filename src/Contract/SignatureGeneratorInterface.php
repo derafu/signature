@@ -47,6 +47,14 @@ interface SignatureGeneratorInterface
      * for signing.
      * @param ?string $reference Reference to which the signature is made. If
      * not specified, the digest of the entire XML document will be signed.
+     * @param ?string $signatureNamespace The namespace of the `Signature`
+     * element.
+     * @param bool $includeCertificateChain Whether to embed the certificate's
+     * trust chain (if any) as additional `X509Certificate` nodes inside
+     * `X509Data`. Disabled by default: most verifiers (e.g. the Chilean SII)
+     * expect a single certificate and never need the chain, since they
+     * validate the CA out of band. Enable it for verifiers that require or
+     * accept the full chain per the XML-DSIG standard.
      * @return string String XML with the generated signature included in the
      * "Signature" tag at the end of the XML (last element within the root node).
      * @throws SignatureException If any problem occurs while signing.
@@ -56,7 +64,8 @@ interface SignatureGeneratorInterface
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
         ?string $reference = null,
-        ?string $signatureNamespace = null
+        ?string $signatureNamespace = null,
+        bool $includeCertificateChain = false
     ): string;
 
     /**

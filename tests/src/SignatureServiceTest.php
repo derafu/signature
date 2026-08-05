@@ -111,6 +111,71 @@ class SignatureServiceTest extends TestCase
         }
     }
 
+    /**
+     * By default, even when the certificate has a trust chain available
+     * (the faker always bundles the issuer CA), only the signer's own
+     * certificate must be embedded in `X509Data`. This is what strict
+     * verifiers such as the Chilean SII expect.
+     */
+    public function testSignXmlDoesNotIncludeCertificateChainByDefault(): void
+    {
+        $this->assertNotEmpty($this->certificate->getCertificateChain());
+
+        $xml = file_get_contents($this->fixturesDir . '/unsigned.xml');
+        $xmlSigned = $this->service->signXml($xml, $this->certificate);
+
+        $this->assertSame(1, substr_count($xmlSigned, '<X509Certificate>'));
+
+        $results = $this->service->validateXml($xmlSigned);
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+            $this->assertSame(
+                $this->certificate->getCertificate(true),
+                $result->getSignatureNode()->getX509Certificate()
+            );
+            $this->assertSame([], $result->getSignatureNode()->getX509CertificateChain());
+        }
+    }
+
+    /**
+     * With `includeCertificateChain: true`, the certificate's trust chain
+     * must be embedded as additional `X509Certificate` nodes, without
+     * affecting the signer's certificate (still the first one) nor the
+     * cryptographic validity of the signature.
+     */
+    public function testSignXmlIncludesCertificateChainWhenRequested(): void
+    {
+        $chain = $this->certificate->getCertificateChain(true);
+        $this->assertNotEmpty($chain);
+
+        $xml = file_get_contents($this->fixturesDir . '/unsigned.xml');
+        $xmlSigned = $this->service->signXml(
+            $xml,
+            $this->certificate,
+            includeCertificateChain: true
+        );
+
+        $this->assertSame(
+            1 + count($chain),
+            substr_count($xmlSigned, '<X509Certificate>')
+        );
+
+        $results = $this->service->validateXml($xmlSigned);
+        $this->assertNotEmpty($results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+            $this->assertSame(
+                $this->certificate->getCertificate(true),
+                $result->getSignatureNode()->getX509Certificate()
+            );
+            $this->assertSame(
+                $chain,
+                $result->getSignatureNode()->getX509CertificateChain()
+            );
+        }
+    }
+
     public function testSignXmlStringIso88591WithSpecialChars(): void
     {
         $xml = file_get_contents($this->fixturesDir . '/unsigned_iso88591.xml');
@@ -201,21 +266,21 @@ class SignatureServiceTest extends TestCase
     {
         $data = 'hello world';
         $privateKey = $this->certificate->getPrivateKey();
-        $publicKey = $this->certificate->getCertificate();
+        $certificate = $this->certificate->getCertificate();
 
         $signature = $this->service->sign($data, $privateKey);
 
-        $this->assertTrue($this->service->validate($data, $signature, $publicKey));
+        $this->assertTrue($this->service->validate($data, $signature, $certificate));
     }
 
     public function testValidateRawDataReturnsFalseForTamperedData(): void
     {
         $data = 'hello world';
         $privateKey = $this->certificate->getPrivateKey();
-        $publicKey = $this->certificate->getCertificate();
+        $certificate = $this->certificate->getCertificate();
 
         $signature = $this->service->sign($data, $privateKey);
 
-        $this->assertFalse($this->service->validate('tampered data', $signature, $publicKey));
+        $this->assertFalse($this->service->validate('tampered data', $signature, $certificate));
     }
 }

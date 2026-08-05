@@ -48,13 +48,22 @@ interface SignatureInterface
      * @param CertificateInterface $certificate The digital certificate to assign.
      * @param string|null $reference The URI reference, which must include the
      * prefix "#"
+     * @param string|null $signatureNamespace The namespace of the `Signature`
+     * element.
+     * @param bool $includeCertificateChain Whether to embed the certificate's
+     * trust chain (if any) as additional `X509Certificate` nodes inside
+     * `X509Data`. Disabled by default: most verifiers (e.g. the Chilean SII)
+     * expect a single certificate and never need the chain, since they
+     * validate the CA out of band. Enable it for verifiers that require or
+     * accept the full chain per the XML-DSIG standard.
      * @return static
      */
     public function configureSignatureData(
         string $digestValue,
         CertificateInterface $certificate,
         ?string $reference = null,
-        ?string $signatureNamespace = null
+        ?string $signatureNamespace = null,
+        bool $includeCertificateChain = false
     ): static;
 
     /**
@@ -94,13 +103,34 @@ interface SignatureInterface
     public function getDigestValue(): ?string;
 
     /**
-     * Returns the X509 certificate associated with the `KeyInfo` node.
+     * Returns the X509 certificate of the signer associated with the
+     * `KeyInfo` node.
+     *
+     * This is always the signer's own ("leaf") certificate, never one of the
+     * intermediate CA certificates of the trust chain. If `X509Data` has
+     * more than one `X509Certificate` node (see `getX509CertificateChain()`),
+     * this returns the first one, which is the signer's certificate.
      *
      * @return string|null The X509 certificate in base64, or `null` if it is
      * not defined.
      */
     #[NoDiscard()]
     public function getX509Certificate(): ?string;
+
+    /**
+     * Returns the intermediate CA certificates of the trust chain associated
+     * with the `KeyInfo` node, if the signature embeds them.
+     *
+     * Most verifiers (e.g. the Chilean SII) do not need or expect this: they
+     * validate the signer's CA out of band and only the certificate returned
+     * by `getX509Certificate()` is present. This will be empty in that case.
+     *
+     * @return string[] The intermediate CA certificates in base64, in the
+     * order they appear in `X509Data` (after the signer's certificate).
+     * Empty if the signature does not embed a trust chain.
+     */
+    #[NoDiscard()]
+    public function getX509CertificateChain(): array;
 
     /**
      * Sets the calculated signature value for the `SignedInfo` node.

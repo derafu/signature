@@ -133,12 +133,13 @@ final class Signature implements SignatureInterface
         string $digestValue,
         CertificateInterface $certificate,
         ?string $reference = null,
-        ?string $signatureNamespace = null
+        ?string $signatureNamespace = null,
+        bool $includeCertificateChain = false
     ): static {
         $instance = $this
             ->setReference($reference)
             ->setDigestValue($digestValue)
-            ->setCertificate($certificate)
+            ->setCertificate($certificate, $includeCertificateChain)
         ;
 
         if ($signatureNamespace !== null) {
@@ -201,7 +202,25 @@ final class Signature implements SignatureInterface
     {
         $x509 = $this->data['Signature']['KeyInfo']['X509Data']['X509Certificate'];
 
+        if (is_array($x509)) {
+            $x509 = $x509[0] ?? null;
+        }
+
         return $x509 ?: null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getX509CertificateChain(): array
+    {
+        $x509 = $this->data['Signature']['KeyInfo']['X509Data']['X509Certificate'];
+
+        if (!is_array($x509)) {
+            return [];
+        }
+
+        return array_slice($x509, 1);
     }
 
     /**
@@ -302,20 +321,39 @@ final class Signature implements SignatureInterface
      * certificate in X509 format).
      *
      * @param CertificateInterface $certificate The digital certificate to assign.
+     * @param bool $includeCertificateChain Whether to embed the certificate's
+     * trust chain (if any) as additional `X509Certificate` nodes. See
+     * `SignatureInterface::configureSignatureData()`.
      * @return static The current instance for method chaining.
      */
-    private function setCertificate(CertificateInterface $certificate): static
-    {
-        // Add module, exponent and certificate. The last one contains the
-        // public key that will allow others to validate the XML signature.
+    private function setCertificate(
+        CertificateInterface $certificate,
+        bool $includeCertificateChain = false
+    ): static {
+        // Add module and exponent, which allow others to validate the XML
+        // signature.
         $this->data['Signature']['KeyInfo']['KeyValue']['RSAKeyValue']['Modulus'] =
             $certificate->getModulus()
         ;
         $this->data['Signature']['KeyInfo']['KeyValue']['RSAKeyValue']['Exponent'] =
             $certificate->getExponent()
         ;
+
+        // Add the certificate. If the trust chain was requested and the
+        // certificate has one, it is embedded as additional sibling
+        // `X509Certificate` nodes, with the signer's certificate first.
+        // Otherwise (the default), a single certificate is embedded, exactly
+        // as before: this keeps the signature byte-identical for verifiers
+        // that expect only one certificate, like the Chilean SII.
+        $x509Certificates = [$certificate->getCertificate(true)];
+        if ($includeCertificateChain) {
+            array_push(
+                $x509Certificates,
+                ...$certificate->getCertificateChain(true)
+            );
+        }
         $this->data['Signature']['KeyInfo']['X509Data']['X509Certificate'] =
-            $certificate->getCertificate(true)
+            count($x509Certificates) > 1 ? $x509Certificates : $x509Certificates[0]
         ;
 
         // Invalidate the XML of the signature node.

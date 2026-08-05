@@ -120,9 +120,6 @@ class SignatureChileTest extends TestCase
             $this->assertTrue($result->isValid());
         }
 
-        // Generic assertion: if we reach here, validation passed.
-        $this->assertTrue(true);
-
         // Specific assertions from companion .php file, if any.
         foreach ($assertions as $key => $expected) {
             // Placeholder for custom assertions.

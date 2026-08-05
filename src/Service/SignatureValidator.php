@@ -40,15 +40,15 @@ final class SignatureValidator implements SignatureValidatorInterface
     public function validate(
         string $data,
         string $signature,
-        string $publicKey,
+        string $certificate,
         string|int $signatureAlgorithm = OPENSSL_ALGO_SHA1
     ): bool {
-        $publicKey = AsymmetricKeyHelper::normalizePublicKey($publicKey);
+        $certificate = AsymmetricKeyHelper::normalizeCertificate($certificate);
 
         $result = openssl_verify(
             $data,
             base64_decode($signature),
-            $publicKey,
+            $certificate,
             $signatureAlgorithm
         );
 

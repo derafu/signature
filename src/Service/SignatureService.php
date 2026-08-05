@@ -54,9 +54,16 @@ final class SignatureService implements SignatureServiceInterface
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
         ?string $reference = null,
-        ?string $signatureNamespace = null
+        ?string $signatureNamespace = null,
+        bool $includeCertificateChain = false
     ): string {
-        return $this->generator->signXml($xml, $certificate, $reference, $signatureNamespace);
+        return $this->generator->signXml(
+            $xml,
+            $certificate,
+            $reference,
+            $signatureNamespace,
+            $includeCertificateChain
+        );
     }
 
     /**
@@ -75,13 +82,13 @@ final class SignatureService implements SignatureServiceInterface
     public function validate(
         string $data,
         string $signature,
-        string $publicKey,
+        string $certificate,
         string|int $signatureAlgorithm = OPENSSL_ALGO_SHA1
     ): bool {
         return $this->validator->validate(
             $data,
             $signature,
-            $publicKey,
+            $certificate,
             $signatureAlgorithm
         );
     }

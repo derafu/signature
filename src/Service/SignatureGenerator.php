@@ -71,7 +71,8 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
         ?string $reference = null,
-        ?string $signatureNamespace = null
+        ?string $signatureNamespace = null,
+        bool $includeCertificateChain = false
     ): string {
         // If an Xml object is passed, it is converted to a string. This is
         // necessary to keep the "pretty" format if it was passed and to be able
@@ -97,7 +98,8 @@ final class SignatureGenerator implements SignatureGeneratorInterface
             reference: $reference,
             digestValue: $digestValue,
             certificate: $certificate,
-            signatureNamespace: $signatureNamespace
+            signatureNamespace: $signatureNamespace,
+            includeCertificateChain: $includeCertificateChain
         );
 
         // Sign the document by calculating the value of the signature of the

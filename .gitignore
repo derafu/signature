@@ -1,6 +1,7 @@
 # PHP files and directories.
 var/
 vendor/
+tmp/
 composer.lock
 
 # Node.js and Vite build.

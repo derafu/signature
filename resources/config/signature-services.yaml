@@ -1,0 +1,32 @@
+# Optional wiring for apps using symfony/dependency-injection.
+# Import it from your own services.yaml:
+#
+#   imports:
+#       - { resource: '../vendor/derafu/signature/resources/config/signature-services.yaml' }
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    # Derafu Signature Service (entry point for the library).
+    Derafu\Signature\Contract\SignatureServiceInterface:
+        class: Derafu\Signature\Service\SignatureService
+
+    # Derafu Signature Generator Service.
+    Derafu\Signature\Contract\SignatureGeneratorInterface:
+        class: Derafu\Signature\Service\SignatureGenerator
+
+    # Derafu Signature Validator Service.
+    Derafu\Signature\Contract\SignatureValidatorInterface:
+        class: Derafu\Signature\Service\SignatureValidator
+
+    # Feeds resources/translations into the consuming app's Translator (the
+    # app must pass $resourceProviders: !tagged_iterator
+    # derafu_translation.resource_provider to TranslatorFactory::create(),
+    # see derafu/translation's translation-services.yaml). The tag is
+    # explicit because _instanceof does not propagate across imported files.
+    Derafu\Signature\Translation\SignatureTranslationResourceProvider:
+        tags: ['derafu_translation.resource_provider']

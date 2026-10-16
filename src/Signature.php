@@ -14,8 +14,9 @@ namespace Derafu\Signature;
 
 use Derafu\Certificate\Contract\CertificateInterface;
 use Derafu\Signature\Contract\SignatureInterface;
+use Derafu\Support\Arr;
+use Derafu\Translation\Exception\Core\TranslatableLogicException as LogicException;
 use Derafu\Xml\Contract\XmlDocumentInterface;
-use LogicException;
 
 /**
  * Class that represents the `Signature` node in an XML digitally signed using
@@ -31,12 +32,20 @@ final class Signature implements SignatureInterface
     private XmlDocumentInterface $xml;
 
     /**
+     * Path in the data to the certificate (or the list of certificates, when
+     * the trust chain is included).
+     *
+     * @var non-empty-list<string>
+     */
+    private const array X509_CERTIFICATE_PATH = ['Signature', 'KeyInfo', 'X509Data', 'X509Certificate'];
+
+    /**
      * Data of the signature node.
      *
      * By default, the data is left empty and will be completed later either by
      * assigning the data or by loading a new XML with the data.
      *
-     * @var array
+     * @var array<int|string, mixed>
      */
     private array $data = [
         // Root node is Signature.
@@ -180,9 +189,9 @@ final class Signature implements SignatureInterface
      */
     public function getReference(): ?string
     {
-        $uri = $this->data['Signature']['SignedInfo']['Reference']['@attributes']['URI'];
+        $uri = $this->getText(['Signature', 'SignedInfo', 'Reference', '@attributes', 'URI']);
 
-        return $uri ? ltrim($uri, '#') : null;
+        return $uri !== null ? ltrim($uri, '#') : null;
     }
 
     /**
@@ -190,9 +199,7 @@ final class Signature implements SignatureInterface
      */
     public function getDigestValue(): ?string
     {
-        $digestValue = $this->data['Signature']['SignedInfo']['Reference']['DigestValue'];
-
-        return $digestValue ?: null;
+        return $this->getText(['Signature', 'SignedInfo', 'Reference', 'DigestValue']);
     }
 
     /**
@@ -200,13 +207,15 @@ final class Signature implements SignatureInterface
      */
     public function getX509Certificate(): ?string
     {
-        $x509 = $this->data['Signature']['KeyInfo']['X509Data']['X509Certificate'];
+        $x509 = Arr::getAtPath($this->data, self::X509_CERTIFICATE_PATH);
 
+        // With a trust chain there are several certificates: the first one is
+        // the one of the signer.
         if (is_array($x509)) {
             $x509 = $x509[0] ?? null;
         }
 
-        return $x509 ?: null;
+        return is_string($x509) && $x509 !== '' && $x509 !== '0' ? $x509 : null;
     }
 
     /**
@@ -214,13 +223,13 @@ final class Signature implements SignatureInterface
      */
     public function getX509CertificateChain(): array
     {
-        $x509 = $this->data['Signature']['KeyInfo']['X509Data']['X509Certificate'];
+        $x509 = Arr::getAtPath($this->data, self::X509_CERTIFICATE_PATH);
 
         if (!is_array($x509)) {
             return [];
         }
 
-        return array_slice($x509, 1);
+        return array_values(array_filter(array_slice($x509, 1), is_string(...)));
     }
 
     /**
@@ -229,9 +238,11 @@ final class Signature implements SignatureInterface
     public function setSignatureValue(string $signatureValue): static
     {
         // Assign the electronic signature of the `SignedInfo` node.
-        $this->data['Signature']['SignatureValue'] =
+        $this->data = Arr::setAtPath(
+            $this->data,
+            ['Signature', 'SignatureValue'],
             wordwrap($signatureValue, 64, "\n", true)
-        ;
+        );
 
         // Invalidate the XML of the signature node.
         $this->invalidateXml();
@@ -245,9 +256,7 @@ final class Signature implements SignatureInterface
      */
     public function getSignatureValue(): ?string
     {
-        $signatureValue = $this->data['Signature']['SignatureValue'];
-
-        return $signatureValue ?: null;
+        return $this->getText(['Signature', 'SignatureValue']);
     }
 
     /**
@@ -264,7 +273,7 @@ final class Signature implements SignatureInterface
      */
     private function setSignatureNamespace(string $namespace): static
     {
-        $this->data['Signature']['@attributes']['xmlns'] = $namespace;
+        $this->data = Arr::setAtPath($this->data, ['Signature', '@attributes', 'xmlns'], $namespace);
 
         $this->invalidateXml();
 
@@ -282,13 +291,16 @@ final class Signature implements SignatureInterface
     {
         // Assign the URI reference (or empty if the entire XML is signed).
         $uri = $reference ? ('#' . ltrim($reference, '#')) : '';
-        $this->data['Signature']['SignedInfo']['Reference']['@attributes']['URI'] = $uri;
+        $this->data = Arr::setAtPath($this->data, ['Signature', 'SignedInfo', 'Reference', '@attributes', 'URI'], $uri);
 
         // Assign the transformation algorithm when obtaining the C14N.
-        $this->data['Signature']['SignedInfo']['Reference']['Transforms']['Transform']['@attributes']['Algorithm'] = $reference
-            ? 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315'
-            : 'http://www.w3.org/2000/09/xmldsig#enveloped-signature'
-        ;
+        $this->data = Arr::setAtPath(
+            $this->data,
+            ['Signature', 'SignedInfo', 'Reference', 'Transforms', 'Transform', '@attributes', 'Algorithm'],
+            $reference
+                ? 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315'
+                : 'http://www.w3.org/2000/09/xmldsig#enveloped-signature'
+        );
 
         // Invalidate the XML of the signature node.
         $this->invalidateXml();
@@ -306,7 +318,7 @@ final class Signature implements SignatureInterface
     private function setDigestValue(string $digestValue): static
     {
         // Assign the digest value.
-        $this->data['Signature']['SignedInfo']['Reference']['DigestValue'] = $digestValue;
+        $this->data = Arr::setAtPath($this->data, ['Signature', 'SignedInfo', 'Reference', 'DigestValue'], $digestValue);
 
         // Invalidate the XML of the signature node.
         $this->invalidateXml();
@@ -332,12 +344,16 @@ final class Signature implements SignatureInterface
     ): static {
         // Add module and exponent, which allow others to validate the XML
         // signature.
-        $this->data['Signature']['KeyInfo']['KeyValue']['RSAKeyValue']['Modulus'] =
+        $this->data = Arr::setAtPath(
+            $this->data,
+            ['Signature', 'KeyInfo', 'KeyValue', 'RSAKeyValue', 'Modulus'],
             $certificate->getModulus()
-        ;
-        $this->data['Signature']['KeyInfo']['KeyValue']['RSAKeyValue']['Exponent'] =
+        );
+        $this->data = Arr::setAtPath(
+            $this->data,
+            ['Signature', 'KeyInfo', 'KeyValue', 'RSAKeyValue', 'Exponent'],
             $certificate->getExponent()
-        ;
+        );
 
         // Add the certificate. If the trust chain was requested and the
         // certificate has one, it is embedded as additional sibling
@@ -352,15 +368,31 @@ final class Signature implements SignatureInterface
                 ...$certificate->getCertificateChain(true)
             );
         }
-        $this->data['Signature']['KeyInfo']['X509Data']['X509Certificate'] =
+        $this->data = Arr::setAtPath(
+            $this->data,
+            self::X509_CERTIFICATE_PATH,
             count($x509Certificates) > 1 ? $x509Certificates : $x509Certificates[0]
-        ;
+        );
 
         // Invalidate the XML of the signature node.
         $this->invalidateXml();
 
         // Return instance for chaining.
         return $this;
+    }
+
+    /**
+     * Reads a value of the data that is text.
+     *
+     * @param non-empty-list<string> $path The keys that lead to the value.
+     * @return string|null The text, or `null` if it is not in the data, it is
+     * not text or it is empty.
+     */
+    private function getText(array $path): ?string
+    {
+        $value = Arr::getAtPath($this->data, $path);
+
+        return is_string($value) && $value !== '' && $value !== '0' ? $value : null;
     }
 
     /**

@@ -28,6 +28,8 @@
         "php": "^8.5",
         "ext-openssl": "*",
         "ext-mbstring": "*",
+        "derafu/translation": "dev-main",
+        "derafu/support": "dev-main",
         "derafu/certificate": "dev-main",
         "derafu/xml": "dev-main"
     },
@@ -35,7 +37,8 @@
         "ext-xdebug": "*",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.2",
-        "phpunit/phpunit": "^13.4"
+        "phpunit/phpunit": "^13.4",
+        "nikic/php-parser": "^5.9"
     },
     "scripts": {
         "docs": "php tools/phpdocumentor run --config=phpdoc.xml",
@@ -45,6 +48,9 @@
         "phpstan": "vendor/bin/phpstan analyse --configuration=phpstan.neon --memory-limit=1G",
         "phpstan-export": "vendor/bin/phpstan analyse --configuration=phpstan.neon --level 9 --generate-baseline",
         "build": "npm run build"
+    },
+    "suggest": {
+        "nikic/php-parser": "Required by the tests of the messages of the package (Derafu\\Translation\\Lint reads the code)."
     },
     "minimum-stability": "dev",
     "prefer-stable": true

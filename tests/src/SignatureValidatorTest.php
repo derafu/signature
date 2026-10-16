@@ -19,10 +19,13 @@ use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\TestsSignature\Support\ReadsFixtures;
+use Derafu\Xml\Exception\XmlQueryException;
 use Derafu\Xml\Service\XmlDecoder;
 use Derafu\Xml\Service\XmlEncoder;
 use Derafu\Xml\Service\XmlService;
 use Derafu\Xml\Service\XmlValidator;
+use Derafu\Xml\XmlDocument;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -33,6 +36,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureValidationResult::class)]
 class SignatureValidatorTest extends TestCase
 {
+    use ReadsFixtures;
+
     private string $fixturesDir;
 
     private SignatureServiceInterface $service;
@@ -56,7 +61,7 @@ class SignatureValidatorTest extends TestCase
 
     public function testValidateExternallySignedXml(): void
     {
-        $xml = file_get_contents($this->fixturesDir . '/valid_signed.xml');
+        $xml = $this->readFixture($this->fixturesDir . '/valid_signed.xml');
 
         $results = $this->service->validateXml($xml);
 
@@ -71,7 +76,7 @@ class SignatureValidatorTest extends TestCase
     {
         $this->expectException(SignatureException::class);
 
-        $xml = file_get_contents($this->fixturesDir . '/unsigned.xml');
+        $xml = $this->readFixture($this->fixturesDir . '/unsigned.xml');
         $results = $this->service->validateXml($xml);
 
         $this->assertNotEmpty($results);
@@ -82,7 +87,7 @@ class SignatureValidatorTest extends TestCase
 
     public function testValidateXmlWithInvalidDigestValueReturnsInvalidResult(): void
     {
-        $xml = file_get_contents($this->fixturesDir . '/invalid_signed.xml');
+        $xml = $this->readFixture($this->fixturesDir . '/invalid_signed.xml');
 
         $results = $this->service->validateXml($xml);
 
@@ -98,7 +103,7 @@ class SignatureValidatorTest extends TestCase
 
     public function testValidateXmlWithInvalidSignatureValueReturnsInvalidResult(): void
     {
-        $xml = file_get_contents($this->fixturesDir . '/invalid_signature_value.xml');
+        $xml = $this->readFixture($this->fixturesDir . '/invalid_signature_value.xml');
 
         $results = $this->service->validateXml($xml);
 
@@ -130,6 +135,68 @@ class SignatureValidatorTest extends TestCase
         // Set a dummy SignatureValue so the first guard passes, but leave X509Certificate empty.
         $signatureNode = new Signature();
         $signatureNode->setSignatureValue('dummyvalue');
+        $this->service->validateXmlSignatureValue($signatureNode);
+    }
+
+    public function testValidateXmlOfADocumentWithoutRootElementThrows(): void
+    {
+        $this->expectException(SignatureException::class);
+        $this->expectExceptionMessage('Could not get the documentElement from the XML to validate its signature');
+
+        (void) $this->service->validateXml(new XmlDocument());
+    }
+
+    public function testGenerateXmlDigestValueOfADocumentWithoutRootElementThrows(): void
+    {
+        $this->expectException(SignatureException::class);
+        $this->expectExceptionMessage('Could not get the documentElement from the XML to sign');
+
+        (void) $this->service->generateXmlDigestValue(new XmlDocument());
+    }
+
+    public function testValidateXmlDigestValueWithoutDigestValueThrows(): void
+    {
+        $signatureNode = (new Signature())->setData([
+            'Signature' => [
+                'SignedInfo' => [
+                    'Reference' => ['@attributes' => ['URI' => '#Derafu_SetDoc']],
+                ],
+            ],
+        ]);
+
+        $this->expectException(SignatureException::class);
+        $this->expectExceptionMessage('The DigestValue is missing from the signature node.');
+
+        $this->service->validateXmlDigestValue(
+            $this->readFixture($this->fixturesDir . '/unsigned.xml'),
+            $signatureNode
+        );
+    }
+
+    public function testCreateSignatureNodeReadsTheSignatureOfAnXml(): void
+    {
+        $xml = $this->readFixture($this->fixturesDir . '/valid_signed.xml');
+        $signatureXml = $this->service->validateXml($xml)[0]->getSignatureNode()->getXml()->saveXml();
+
+        $signatureNode = $this->service->createSignatureNode($signatureXml);
+
+        $this->assertNotNull($signatureNode->getDigestValue());
+        $this->assertNotNull($signatureNode->getSignatureValue());
+        $this->assertNotNull($signatureNode->getX509Certificate());
+    }
+
+    public function testValidateXmlSignatureValueOfAnXmlWithoutSignedInfoThrows(): void
+    {
+        $signatureNode = (new Signature())->setData(['Signature' => [
+            'SignatureValue' => 'value',
+            'KeyInfo' => ['X509Data' => ['X509Certificate' => 'certificate']],
+        ]]);
+        $xml = new XmlDocument();
+        $xml->loadXml('<Signature><Other/></Signature>');
+        $signatureNode->setXml($xml);
+
+        $this->expectException(XmlQueryException::class);
+
         $this->service->validateXmlSignatureValue($signatureNode);
     }
 }

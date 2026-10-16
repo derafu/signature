@@ -22,6 +22,7 @@ use Derafu\Signature\SignatureValidationResult;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Contract\XmlServiceInterface;
 use Derafu\Xml\XmlDocument;
+use DOMNode;
 
 /**
  * Class that handles the validation of electronic signatures.
@@ -52,7 +53,7 @@ final class SignatureValidator implements SignatureValidatorInterface
             $signatureAlgorithm
         );
 
-        if ($result === -1) {
+        if ($result === false || $result === -1) {
             throw new SignatureException(
                 'An error occurred while verifying the electronic signature of the data.'
             );
@@ -70,20 +71,23 @@ final class SignatureValidator implements SignatureValidatorInterface
         if (is_string($xml)) {
             $doc = new XmlDocument();
             $doc->loadXml($xml);
-            if ($doc->getDocumentElement() === null) {
-                throw new SignatureException(
-                    'Could not get the documentElement from the XML to validate its signature (possible malformed XML).'
-                );
-            }
         }
         // If an Xml object is passed, it is used directly.
         else {
             $doc = $xml;
         }
 
+        // The XML must have a document element, where the signatures are.
+        $rootElement = $doc->getDocumentElement();
+        if ($rootElement === null) {
+            throw new SignatureException(
+                'Could not get the documentElement from the XML to validate its signature (possible malformed XML).'
+            );
+        }
+
         // Search for all elements that are tag Signature.
         // An XML document can have more than one signature.
-        $signaturesElements = $doc->getDocumentElement()->getElementsByTagName(
+        $signaturesElements = $rootElement->getElementsByTagName(
             'Signature'
         );
 
@@ -153,14 +157,14 @@ final class SignatureValidator implements SignatureValidatorInterface
         // Load the string XML into an XML document.
         $doc = new XmlDocument();
         $doc->loadXml($xml);
-        if (!$doc->getDomDocument()->documentElement) {
-            throw new SignatureException(
-                'Could not get the documentElement from the XML to validate its signature (possible malformed XML).'
-            );
-        }
 
         // Get the digest value that comes in the XML (in the signature node).
         $digestValueXml = $signatureNode->getDigestValue();
+        if ($digestValueXml === null) {
+            throw new SignatureException(
+                'The DigestValue is missing from the signature node.'
+            );
+        }
         $reference = $signatureNode->getReference();
 
         // Calculate the digest value from the XML document.
@@ -180,12 +184,12 @@ final class SignatureValidator implements SignatureValidatorInterface
 
         // If the digest values do not match, it is not valid.
         if ($digestValueXml !== $digestValueCalculated) {
-            throw new SignatureException(sprintf(
-                'The DigestValue that comes in the XML "%s" for the reference "%s" does not match the calculated value when validating "%s". The data of the reference could have been manipulated after being signed.',
-                $digestValueXml,
-                $reference,
-                $digestValueCalculated
-            ));
+            throw new SignatureException([
+                'The DigestValue that comes in the XML "{xml}" for the reference "{reference}" does not match the calculated value when validating "{calculated}". The data of the reference could have been manipulated after being signed.',
+                'xml' => $digestValueXml,
+                'reference' => $reference,
+                'calculated' => $digestValueCalculated,
+            ]);
         }
     }
 
@@ -203,7 +207,7 @@ final class SignatureValidator implements SignatureValidatorInterface
     ): ?string {
         $xpath = '//*[@ID="' . ltrim($reference, '#') . '"]';
         $node = $doc->getNodes($xpath)->item(0);
-        if ($node === null) {
+        if (!$node instanceof DOMNode) {
             return null;
         }
 
@@ -264,7 +268,7 @@ final class SignatureValidator implements SignatureValidatorInterface
         // some signing systems (e.g. certain commercial DTE issuers) use it.
         $xpath = "//*[local-name()='Signature']/*[local-name()='SignedInfo']";
         $signedInfoNode = $signatureNode->getXml()->getNodes($xpath)->item(0);
-        $signedInfoC14N = $signedInfoNode !== null
+        $signedInfoC14N = $signedInfoNode instanceof DOMNode
             ? $signedInfoNode->C14N(false, false)
             : $signatureNode->getXml()->C14NEncoded($xpath);
 
@@ -276,7 +280,7 @@ final class SignatureValidator implements SignatureValidatorInterface
         );
 
         // If standard C14N fails, try exclusive C14N as fallback.
-        if (!$isValid && $signedInfoNode !== null) {
+        if (!$isValid && $signedInfoNode instanceof DOMNode) {
             $signedInfoC14N = $signedInfoNode->C14N(true, false);
             $isValid = $this->validate(
                 $signedInfoC14N,
@@ -287,10 +291,10 @@ final class SignatureValidator implements SignatureValidatorInterface
 
         // If the electronic signature is not valid, an exception is thrown.
         if (!$isValid) {
-            throw new SignatureException(sprintf(
-                'The electronic signature of the `SignedInfo` node of the XML for the reference "%s" is not valid.',
-                $signatureNode->getReference()
-            ));
+            throw new SignatureException([
+                'The electronic signature of the `SignedInfo` node of the XML for the reference "{reference}" is not valid.',
+                'reference' => $signatureNode->getReference(),
+            ]);
         }
     }
 }

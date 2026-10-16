@@ -16,11 +16,13 @@ use Derafu\Certificate\Contract\CertificateInterface;
 use Derafu\Certificate\Service\CertificateFaker;
 use Derafu\Certificate\Service\CertificateLoader;
 use Derafu\Signature\Contract\SignatureServiceInterface;
+use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Service\SignatureGenerator;
 use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\TestsSignature\Support\ReadsFixtures;
 use Derafu\Xml\Exception\XmlException;
 use Derafu\Xml\Service\XmlDecoder;
 use Derafu\Xml\Service\XmlEncoder;
@@ -37,6 +39,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureValidationResult::class)]
 class SignatureServiceTest extends TestCase
 {
+    use ReadsFixtures;
+
     private string $fixturesDir;
 
     private SignatureServiceInterface $service;
@@ -66,7 +70,7 @@ class SignatureServiceTest extends TestCase
 
     public function testSignXmlStringIso88591(): void
     {
-        $xml = file_get_contents($this->fixturesDir . '/unsigned.xml');
+        $xml = $this->readFixture($this->fixturesDir . '/unsigned.xml');
 
         $xmlSigned = $this->service->signXml($xml, $this->certificate);
 
@@ -82,7 +86,7 @@ class SignatureServiceTest extends TestCase
     public function testSignXmlObjectIso88591(): void
     {
         $xml = new XmlDocument();
-        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned.xml'));
+        $xml->loadXml($this->readFixture($this->fixturesDir . '/unsigned.xml'));
 
         $xmlSigned = $this->service->signXml($xml, $this->certificate);
 
@@ -98,7 +102,7 @@ class SignatureServiceTest extends TestCase
     public function testSignXmlWithReferenceIso88591(): void
     {
         $xml = new XmlDocument();
-        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned.xml'));
+        $xml->loadXml($this->readFixture($this->fixturesDir . '/unsigned.xml'));
 
         $xmlSigned = $this->service->signXml($xml, $this->certificate, 'Derafu_SetDoc');
 
@@ -121,7 +125,7 @@ class SignatureServiceTest extends TestCase
     {
         $this->assertNotEmpty($this->certificate->getCertificateChain());
 
-        $xml = file_get_contents($this->fixturesDir . '/unsigned.xml');
+        $xml = $this->readFixture($this->fixturesDir . '/unsigned.xml');
         $xmlSigned = $this->service->signXml($xml, $this->certificate);
 
         $this->assertSame(1, substr_count($xmlSigned, '<X509Certificate>'));
@@ -149,7 +153,7 @@ class SignatureServiceTest extends TestCase
         $chain = $this->certificate->getCertificateChain(true);
         $this->assertNotEmpty($chain);
 
-        $xml = file_get_contents($this->fixturesDir . '/unsigned.xml');
+        $xml = $this->readFixture($this->fixturesDir . '/unsigned.xml');
         $xmlSigned = $this->service->signXml(
             $xml,
             $this->certificate,
@@ -178,7 +182,7 @@ class SignatureServiceTest extends TestCase
 
     public function testSignXmlStringIso88591WithSpecialChars(): void
     {
-        $xml = file_get_contents($this->fixturesDir . '/unsigned_iso88591.xml');
+        $xml = $this->readFixture($this->fixturesDir . '/unsigned_iso88591.xml');
 
         $xmlSigned = $this->service->signXml($xml, $this->certificate);
 
@@ -193,7 +197,7 @@ class SignatureServiceTest extends TestCase
 
     public function testSignXmlStringUtf8WithSpecialChars(): void
     {
-        $xml = file_get_contents($this->fixturesDir . '/unsigned_utf8.xml');
+        $xml = $this->readFixture($this->fixturesDir . '/unsigned_utf8.xml');
 
         $xmlSigned = $this->service->signXml($xml, $this->certificate);
 
@@ -209,7 +213,7 @@ class SignatureServiceTest extends TestCase
     public function testSignXmlWithReferenceUtf8WithSpecialChars(): void
     {
         $xml = new XmlDocument();
-        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned_utf8.xml'));
+        $xml->loadXml($this->readFixture($this->fixturesDir . '/unsigned_utf8.xml'));
 
         $xmlSigned = $this->service->signXml($xml, $this->certificate, 'Derafu_SetDoc');
 
@@ -225,7 +229,7 @@ class SignatureServiceTest extends TestCase
     public function testSignXmlWithCustomSignatureNamespace(): void
     {
         $xml = new XmlDocument();
-        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned.xml'));
+        $xml->loadXml($this->readFixture($this->fixturesDir . '/unsigned.xml'));
 
         $customNamespace = 'http://www.sii.cl/SiiDte';
         $xmlSigned = $this->service->signXml(
@@ -256,7 +260,7 @@ class SignatureServiceTest extends TestCase
         $this->expectException(XmlException::class);
 
         $xml = new XmlDocument();
-        $xml->loadXml(file_get_contents($this->fixturesDir . '/unsigned.xml'));
+        $xml->loadXml($this->readFixture($this->fixturesDir . '/unsigned.xml'));
 
         $signature = $this->service->signXml($xml, $this->certificate, 'nonexistent_id');
         // $signature is not used because the exception is thrown before it is returned.
@@ -282,5 +286,39 @@ class SignatureServiceTest extends TestCase
         $signature = $this->service->sign($data, $privateKey);
 
         $this->assertFalse($this->service->validate('tampered data', $signature, $certificate));
+    }
+
+    public function testValidateRawDataThrowsForACertificateThatIsNotValid(): void
+    {
+        $signature = $this->service->sign('hello world', $this->certificate->getPrivateKey());
+
+        // OpenSSL also emits a warning for the certificate.
+        set_error_handler(static fn (): bool => true);
+        try {
+            $this->expectException(SignatureException::class);
+            $this->expectExceptionMessage('An error occurred while verifying the electronic signature of the data.');
+            (void) $this->service->validate('hello world', $signature, 'not a certificate');
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    public function testValidateRawDataThrowsForAnAlgorithmThatIsNotKnown(): void
+    {
+        $signature = $this->service->sign('hello world', $this->certificate->getPrivateKey());
+
+        // OpenSSL also emits a warning for the algorithm.
+        set_error_handler(static fn (): bool => true);
+        try {
+            $this->expectException(SignatureException::class);
+            (void) $this->service->validate(
+                'hello world',
+                $signature,
+                $this->certificate->getCertificate(),
+                'unknown'
+            );
+        } finally {
+            restore_error_handler();
+        }
     }
 }

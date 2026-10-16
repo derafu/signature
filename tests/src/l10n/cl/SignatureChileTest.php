@@ -21,6 +21,7 @@ use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\TestsSignature\Support\ReadsFixtures;
 use Derafu\Xml\Service\XmlDecoder;
 use Derafu\Xml\Service\XmlEncoder;
 use Derafu\Xml\Service\XmlService;
@@ -29,6 +30,7 @@ use Derafu\Xml\XmlDocument;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
 #[CoversClass(Signature::class)]
 #[CoversClass(SignatureService::class)]
@@ -37,6 +39,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureValidationResult::class)]
 class SignatureChileTest extends TestCase
 {
+    use ReadsFixtures;
+
     private SignatureServiceInterface $service;
 
     private CertificateInterface $certificate;
@@ -73,6 +77,8 @@ class SignatureChileTest extends TestCase
      *
      * The directory is gitignored — files must be placed locally for the tests
      * to run. If the directory is empty the test is skipped.
+     *
+     * @return array<string, array{string, array<string, mixed>}|array{string}>
      */
     public static function realDteXmlProvider(): array
     {
@@ -101,6 +107,8 @@ class SignatureChileTest extends TestCase
      * This test exercises the validator against documents signed by real
      * Chilean certificates and accepted by the SII. It is the critical
      * interoperability check for the library.
+     *
+     * @param array<string, mixed> $assertions
      */
     #[DataProvider('realDteXmlProvider')]
     public function testValidateRealDteXml(
@@ -111,7 +119,7 @@ class SignatureChileTest extends TestCase
             $this->markTestSkipped('No XML files found in the fixtures directory.');
         }
 
-        $xml = file_get_contents($xmlFile);
+        $xml = $this->readFixture($xmlFile);
 
         $results = $this->service->validateXml($xml);
 
@@ -138,6 +146,8 @@ class SignatureChileTest extends TestCase
      * Each case is a real-world scenario present in Chilean DTEs: company
      * names with accents (á, é, í, ó, ú, ñ, ü), XML entities, special
      * characters in attributes, etc.
+     *
+     * @return array<string, array{data: array<string, mixed>, reference: string, expectedException: class-string<Throwable>|null}>
      */
     public static function specialCharactersProvider(): array
     {
@@ -154,6 +164,9 @@ class SignatureChileTest extends TestCase
      * - The signature is valid after signing.
      * - The DigestValue is stable: signing the same XML twice produces the
      *   same digest (deterministic canonicalization).
+     *
+     * @param array<string, mixed> $data
+     * @param class-string<Throwable>|null $expectedException
      */
     #[DataProvider('specialCharactersProvider')]
     public function testSignAndValidateIso88591WithSpecialCharacters(

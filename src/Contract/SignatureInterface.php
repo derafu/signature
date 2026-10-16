@@ -25,7 +25,7 @@ interface SignatureInterface
     /**
      * Assigns the data of the signature node.
      *
-     * @param array $data
+     * @param array<int|string, mixed> $data
      * @return static
      */
     public function setData(array $data): static;
@@ -35,7 +35,7 @@ interface SignatureInterface
      *
      * This is the data structure that allows creating the node as XML.
      *
-     * @return array
+     * @return array<int|string, mixed>
      */
     #[NoDiscard()]
     public function getData(): array;

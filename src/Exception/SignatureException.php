@@ -16,6 +16,10 @@ use Derafu\Certificate\Exception\CertificateException;
 
 /**
  * Exception class for the process of signing or validating digital signatures.
+ *
+ * It is a translatable exception (it extends `CertificateException`): what it
+ * says is its message, and the errors of OpenSSL that explain it are data in
+ * `getErrors()`.
  */
 class SignatureException extends CertificateException
 {

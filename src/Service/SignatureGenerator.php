@@ -17,11 +17,12 @@ use Derafu\Signature\Contract\SignatureGeneratorInterface;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Signature;
+use Derafu\Translation\Exception\Core\TranslatableLogicException as LogicException;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Contract\XmlServiceInterface;
 use Derafu\Xml\Exception\XmlException;
 use Derafu\Xml\XmlDocument;
-use LogicException;
+use DOMNode;
 
 /**
  * Class that handles the generation of electronic signatures, particularly for
@@ -84,7 +85,8 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // Load the XML that will be signed.
         $doc = new XmlDocument();
         $doc->loadXml($xml);
-        if (!$doc->getDomDocument()->documentElement) {
+        $rootElement = $doc->getDocumentElement();
+        if ($rootElement === null) {
             throw new SignatureException(
                 'Could not get the documentElement from the XML to sign (possible malformed XML).'
             );
@@ -112,7 +114,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
 
         // Add the XML signature in the Signature node.
         $signatureElement = $doc->getDomDocument()->createElement('Signature', '');
-        $doc->getDomDocument()->documentElement->appendChild($signatureElement);
+        $rootElement->appendChild($signatureElement);
         $xmlSigned = str_replace('<Signature/>', $xmlSignature, $doc->saveXml());
 
         // Return the string XML of the signed XML document.
@@ -130,11 +132,11 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         if (!empty($reference)) {
             $xpath = '//*[@ID="' . ltrim($reference, '#') . '"]';
             $node = $doc->getNodes($xpath)->item(0);
-            if ($node === null) {
-                throw new XmlException(sprintf(
-                    'No element with ID "%s" was found in the XML document.',
-                    ltrim($reference, '#')
-                ));
+            if (!$node instanceof DOMNode) {
+                throw new XmlException([
+                    'No element with ID "{id}" was found in the XML document.',
+                    'id' => ltrim($reference, '#'),
+                ]);
             }
             $dataToDigest = $node->C14N();
         }
@@ -144,6 +146,11 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         else {
             $docClone = clone $doc;
             $rootElement = $docClone->getDocumentElement();
+            if ($rootElement === null) {
+                throw new SignatureException(
+                    'Could not get the documentElement from the XML to sign (possible malformed XML).'
+                );
+            }
             $signatureElement = $rootElement
                 ->getElementsByTagName('Signature')
                 ->item(0)
@@ -152,6 +159,13 @@ final class SignatureGenerator implements SignatureGeneratorInterface
                 $rootElement->removeChild($signatureElement);
             }
             $dataToDigest = $docClone->C14N();
+        }
+
+        // If the XML could not be canonicalized, there is nothing to digest.
+        if ($dataToDigest === false) {
+            throw new SignatureException(
+                'The XML could not be canonicalized to calculate the digest.'
+            );
         }
 
         // Calculate the digest over the XML data in C14N format.
@@ -199,7 +213,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // the Signature::$data template, which always declares it.
         $xpath = "//*[local-name()='Signature']/*[local-name()='SignedInfo']";
         $signedInfoNode = $nodeXml->getNodes($xpath)->item(0);
-        if ($signedInfoNode === null) {
+        if (!$signedInfoNode instanceof DOMNode) {
             throw new LogicException('SignedInfo node is missing from the generated Signature XML.');
         }
         $signedInfoC14N = $signedInfoNode->C14N(false, false);

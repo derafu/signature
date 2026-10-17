@@ -13,6 +13,9 @@ declare(strict_types=1);
 namespace Derafu\Signature\Service;
 
 use Derafu\Certificate\AsymmetricKeyHelper;
+use Derafu\Certificate\Contract\OpenSslInterface;
+use Derafu\Certificate\Exception\CertificateException;
+use Derafu\Certificate\Service\OpenSsl;
 use Derafu\Signature\Contract\SignatureGeneratorInterface;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Signature\Contract\SignatureValidatorInterface;
@@ -22,6 +25,7 @@ use Derafu\Signature\SignatureValidationResult;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Contract\XmlServiceInterface;
 use Derafu\Xml\XmlDocument;
+use Derafu\Xml\XmlHelper;
 use DOMNode;
 
 /**
@@ -31,7 +35,8 @@ final class SignatureValidator implements SignatureValidatorInterface
 {
     public function __construct(
         private readonly SignatureGeneratorInterface $generator,
-        private readonly XmlServiceInterface $xmlService
+        private readonly XmlServiceInterface $xmlService,
+        private readonly OpenSslInterface $openSsl = new OpenSsl()
     ) {
     }
 
@@ -46,20 +51,23 @@ final class SignatureValidator implements SignatureValidatorInterface
     ): bool {
         $certificate = AsymmetricKeyHelper::normalizeCertificate($certificate);
 
-        $result = openssl_verify(
-            $data,
-            base64_decode($signature),
-            $certificate,
-            $signatureAlgorithm
-        );
-
-        if ($result === false || $result === -1) {
+        // A signature that is not valid is a result (`false`). A failure of the
+        // verification itself is an exception, with the errors of OpenSSL of
+        // that call.
+        try {
+            return $this->openSsl->verify(
+                $data,
+                (string) base64_decode($signature),
+                $certificate,
+                $signatureAlgorithm
+            );
+        } catch (CertificateException $e) {
             throw new SignatureException(
-                'An error occurred while verifying the electronic signature of the data.'
+                'An error occurred while verifying the electronic signature of the data.',
+                previous: $e,
+                errors: $e->getErrors()
             );
         }
-
-        return $result === 1;
     }
 
     /**
@@ -104,7 +112,7 @@ final class SignatureValidator implements SignatureValidatorInterface
         $results = [];
         foreach ($signaturesElements as $signatureElement) {
             $signatureNode = $this->createSignatureNode(
-                $signatureElement->C14N()
+                XmlHelper::canonicalize($signatureElement)
             );
 
             $error = null;
@@ -212,7 +220,7 @@ final class SignatureValidator implements SignatureValidatorInterface
         }
 
         // Try exclusive C14N (only includes visibly-utilized namespaces).
-        $hash = base64_encode(sha1($node->C14N(true, false), true));
+        $hash = base64_encode(sha1(XmlHelper::canonicalize($node, exclusive: true), true));
         if ($hash === $expected) {
             return $hash;
         }
@@ -229,7 +237,7 @@ final class SignatureValidator implements SignatureValidatorInterface
         if (@$strippedDoc->loadXml($stripped) && $strippedDoc->getDomDocument()->documentElement) {
             $hash = base64_encode(
                 sha1(
-                    $strippedDoc->getDomDocument()->documentElement->C14N(false, false),
+                    XmlHelper::canonicalize($strippedDoc->getDomDocument()->documentElement),
                     true
                 )
             );
@@ -269,7 +277,7 @@ final class SignatureValidator implements SignatureValidatorInterface
         $xpath = "//*[local-name()='Signature']/*[local-name()='SignedInfo']";
         $signedInfoNode = $signatureNode->getXml()->getNodes($xpath)->item(0);
         $signedInfoC14N = $signedInfoNode instanceof DOMNode
-            ? $signedInfoNode->C14N(false, false)
+            ? XmlHelper::canonicalize($signedInfoNode)
             : $signatureNode->getXml()->C14NEncoded($xpath);
 
         // Validate the electronic signature.
@@ -281,7 +289,7 @@ final class SignatureValidator implements SignatureValidatorInterface
 
         // If standard C14N fails, try exclusive C14N as fallback.
         if (!$isValid && $signedInfoNode instanceof DOMNode) {
-            $signedInfoC14N = $signedInfoNode->C14N(true, false);
+            $signedInfoC14N = XmlHelper::canonicalize($signedInfoNode, exclusive: true);
             $isValid = $this->validate(
                 $signedInfoC14N,
                 $signatureValue,

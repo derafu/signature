@@ -292,33 +292,23 @@ class SignatureServiceTest extends TestCase
     {
         $signature = $this->service->sign('hello world', $this->certificate->getPrivateKey());
 
-        // OpenSSL also emits a warning for the certificate.
-        set_error_handler(static fn (): bool => true);
-        try {
-            $this->expectException(SignatureException::class);
-            $this->expectExceptionMessage('An error occurred while verifying the electronic signature of the data.');
-            (void) $this->service->validate('hello world', $signature, 'not a certificate');
-        } finally {
-            restore_error_handler();
-        }
+        $this->expectException(SignatureException::class);
+        $this->expectExceptionMessage('An error occurred while verifying the electronic signature of the data.');
+
+        (void) $this->service->validate('hello world', $signature, 'not a certificate');
     }
 
     public function testValidateRawDataThrowsForAnAlgorithmThatIsNotKnown(): void
     {
         $signature = $this->service->sign('hello world', $this->certificate->getPrivateKey());
 
-        // OpenSSL also emits a warning for the algorithm.
-        set_error_handler(static fn (): bool => true);
-        try {
-            $this->expectException(SignatureException::class);
-            (void) $this->service->validate(
-                'hello world',
-                $signature,
-                $this->certificate->getCertificate(),
-                'unknown'
-            );
-        } finally {
-            restore_error_handler();
-        }
+        $this->expectException(SignatureException::class);
+
+        (void) $this->service->validate(
+            'hello world',
+            $signature,
+            $this->certificate->getCertificate(),
+            'unknown'
+        );
     }
 }

@@ -22,6 +22,7 @@ use Derafu\Signature\SignatureValidationResult;
 use Derafu\Signature\Translation\SignatureTranslationResourceProvider;
 use Derafu\TestsSignature\Support\ReadsFixtures;
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\TranslatableMessage;
 use Derafu\Translation\TranslatorFactory;
 use Derafu\Xml\Exception\XmlException;
 use Derafu\Xml\Service\XmlDecoder;
@@ -101,17 +102,18 @@ final class SignatureExceptionTest extends TestCase
     public function testItKeepsTheCodeThePreviousThrowableAndTheErrors(): void
     {
         $previous = new RuntimeException('previous');
-        $exception = new SignatureException('Could not sign the data.', 7, $previous, ['one']);
+        $error = new TranslatableMessage('OpenSSL: {text}', ['text' => 'one'], domain: 'errors');
+        $exception = new SignatureException('Could not sign the data.', 7, $previous, [$error]);
 
         $this->assertSame(7, $exception->getCode());
         $this->assertSame($previous, $exception->getPrevious());
-        $this->assertSame(['one'], $exception->getErrors());
+        $this->assertSame([$error], $exception->getErrors());
     }
 
     public function testTheErrorsOfOpensslAreDataAndNotPartOfTheMessage(): void
     {
         try {
-            @$this->generator->sign('data', 'invalid private key');
+            $this->generator->sign('data', 'invalid private key');
             $this->fail('It should have failed.');
         } catch (SignatureException $e) {
             $this->assertSame('Could not sign the data.', $e->getMessage());

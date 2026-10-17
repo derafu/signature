@@ -18,10 +18,6 @@ return [
         'No fue posible obtener el elemento raíz del XML a firmar (posiblemente el XML está mal formado).',
     'No element with ID "{id}" was found in the XML document.' =>
         'No se encontró ningún elemento con ID "{id}" en el documento XML.',
-    'The XML could not be canonicalized to calculate the digest.' =>
-        'No fue posible canonicalizar el XML para calcular el digest.',
-    'It is not possible to generate the signature of the Signature node if the DigestValue is not assigned.' =>
-        'No es posible generar la firma del nodo Signature si no se ha asignado el DigestValue.',
     'It is not possible to generate the signature of the Signature node if the digital certificate is not assigned.' =>
         'No es posible generar la firma del nodo Signature si no se ha asignado el certificado digital.',
     'SignedInfo node is missing from the generated Signature XML.' =>

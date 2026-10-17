@@ -13,6 +13,9 @@ declare(strict_types=1);
 namespace Derafu\Signature\Service;
 
 use Derafu\Certificate\Contract\CertificateInterface;
+use Derafu\Certificate\Contract\OpenSslInterface;
+use Derafu\Certificate\Exception\CertificateException;
+use Derafu\Certificate\Service\OpenSsl;
 use Derafu\Signature\Contract\SignatureGeneratorInterface;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Signature\Exception\SignatureException;
@@ -22,6 +25,7 @@ use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Contract\XmlServiceInterface;
 use Derafu\Xml\Exception\XmlException;
 use Derafu\Xml\XmlDocument;
+use Derafu\Xml\XmlHelper;
 use DOMNode;
 
 /**
@@ -35,8 +39,10 @@ final class SignatureGenerator implements SignatureGeneratorInterface
      *
      * @param XmlServiceInterface $xmlService
      */
-    public function __construct(private readonly XmlServiceInterface $xmlService)
-    {
+    public function __construct(
+        private readonly XmlServiceInterface $xmlService,
+        private readonly OpenSslInterface $openSsl = new OpenSsl()
+    ) {
     }
 
     /**
@@ -47,18 +53,20 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         string $privateKey,
         string|int $signatureAlgorithm = OPENSSL_ALGO_SHA1
     ): string {
-        // Sign the data.
-        $signature = null;
-        $result = openssl_sign(
-            $data,
-            $signature,
-            $privateKey,
-            $signatureAlgorithm
-        );
-
-        // If the data could not be signed, an exception is thrown.
-        if ($result === false) {
-            throw new SignatureException('Could not sign the data.');
+        // Sign the data. If the data could not be signed, an exception is
+        // thrown, with the errors of OpenSSL of that call.
+        try {
+            $signature = $this->openSsl->sign(
+                $data,
+                $privateKey,
+                $signatureAlgorithm
+            );
+        } catch (CertificateException $e) {
+            throw new SignatureException(
+                'Could not sign the data.',
+                previous: $e,
+                errors: $e->getErrors()
+            );
         }
 
         // Return the signature in base64.
@@ -85,12 +93,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // Load the XML that will be signed.
         $doc = new XmlDocument();
         $doc->loadXml($xml);
-        $rootElement = $doc->getDocumentElement();
-        if ($rootElement === null) {
-            throw new SignatureException(
-                'Could not get the documentElement from the XML to sign (possible malformed XML).'
-            );
-        }
+        $rootElement = $doc->requireDocumentElement();
 
         // Generate the "DigestValue" of the reference data.
         $digestValue = $this->generateXmlDigestValue($doc, $reference);
@@ -138,7 +141,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
                     'id' => ltrim($reference, '#'),
                 ]);
             }
-            $dataToDigest = $node->C14N();
+            $dataToDigest = XmlHelper::canonicalize($node);
         }
         // When there is no reference, the digest is over the entire XML.
         // If the XML already has a "Signature" node within the root node, it
@@ -159,13 +162,6 @@ final class SignatureGenerator implements SignatureGeneratorInterface
                 $rootElement->removeChild($signatureElement);
             }
             $dataToDigest = $docClone->C14N();
-        }
-
-        // If the XML could not be canonicalized, there is nothing to digest.
-        if ($dataToDigest === false) {
-            throw new SignatureException(
-                'The XML could not be canonicalized to calculate the digest.'
-            );
         }
 
         // Calculate the digest over the XML data in C14N format.
@@ -189,13 +185,6 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         SignatureInterface $signatureNode,
         CertificateInterface $certificate
     ): SignatureInterface {
-        // Validate that the DigestValue is assigned.
-        if ($signatureNode->getDigestValue() === null) {
-            throw new LogicException(
-                'It is not possible to generate the signature of the Signature node if the DigestValue is not assigned.'
-            );
-        }
-
         // Validate that the digital certificate is assigned.
         if ($signatureNode->getX509Certificate() === null) {
             throw new LogicException(
@@ -213,10 +202,8 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // the Signature::$data template, which always declares it.
         $xpath = "//*[local-name()='Signature']/*[local-name()='SignedInfo']";
         $signedInfoNode = $nodeXml->getNodes($xpath)->item(0);
-        if (!$signedInfoNode instanceof DOMNode) {
-            throw new LogicException('SignedInfo node is missing from the generated Signature XML.');
-        }
-        $signedInfoC14N = $signedInfoNode->C14N(false, false);
+        $signedInfoNode instanceof DOMNode || throw new LogicException('SignedInfo node is missing from the generated Signature XML.');
+        $signedInfoC14N = XmlHelper::canonicalize($signedInfoNode);
 
         // Generate the signature of the data, the tag `SignedInfo`.
         $signature = $this->sign(

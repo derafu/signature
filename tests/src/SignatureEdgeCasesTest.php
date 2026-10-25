@@ -67,7 +67,7 @@ final class SignatureEdgeCasesTest extends TestCase
         $document->loadXml(self::XML_THAT_CAN_NOT_BE_CANONICALIZED);
 
         $this->expectException(XmlException::class);
-        $this->expectExceptionMessage('The XML could not be canonicalized.');
+        $this->expectExceptionMessage('The XML could not be canonicalized:');
 
         $generator->generateXmlDigestValue($document);
     }
@@ -79,7 +79,7 @@ final class SignatureEdgeCasesTest extends TestCase
         $document->loadXml(self::XML_THAT_CAN_NOT_BE_CANONICALIZED);
 
         $this->expectException(XmlException::class);
-        $this->expectExceptionMessage('The XML could not be canonicalized.');
+        $this->expectExceptionMessage('The XML could not be canonicalized:');
 
         $generator->generateXmlDigestValue($document, '#B1');
     }
@@ -89,7 +89,7 @@ final class SignatureEdgeCasesTest extends TestCase
         $generator = new SignatureGenerator($this->xmlService);
 
         $this->expectException(XmlException::class);
-        $this->expectExceptionMessage('The XML could not be canonicalized.');
+        $this->expectExceptionMessage('The XML could not be canonicalized:');
 
         $generator->signXml(
             self::XML_THAT_CAN_NOT_BE_CANONICALIZED,
@@ -161,7 +161,7 @@ final class SignatureEdgeCasesTest extends TestCase
         $validator = new SignatureValidator(new SignatureGenerator($this->xmlService), $this->xmlService);
 
         $this->expectException(XmlException::class);
-        $this->expectExceptionMessage('The XML could not be canonicalized.');
+        $this->expectExceptionMessage('The XML could not be canonicalized:');
 
         $validator->validateXml($withRelativeNamespace);
     }
@@ -171,7 +171,7 @@ final class SignatureEdgeCasesTest extends TestCase
         $certificate = (new CertificateFaker(new CertificateLoader()))->createFake();
 
         $this->expectException(XmlException::class);
-        $this->expectExceptionMessage('The XML could not be canonicalized.');
+        $this->expectExceptionMessage('The XML could not be canonicalized:');
 
         (new SignatureGenerator($this->xmlService))->signXml(
             '<?xml version="1.0"?><a><b/></a>',
@@ -198,7 +198,7 @@ final class SignatureEdgeCasesTest extends TestCase
         ));
 
         $this->expectException(XmlException::class);
-        $this->expectExceptionMessage('The XML could not be canonicalized.');
+        $this->expectExceptionMessage('The XML could not be canonicalized:');
 
         $validator->validateXmlSignatureValue($signatureNode);
     }

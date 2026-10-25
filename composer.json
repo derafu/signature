@@ -29,7 +29,7 @@
         "ext-openssl": "*",
         "ext-mbstring": "*",
         "derafu/translation": "dev-main",
-        "derafu/support": "dev-main",
+        "derafu/array": "dev-main",
         "derafu/certificate": "dev-main",
         "derafu/xml": "dev-main"
     },

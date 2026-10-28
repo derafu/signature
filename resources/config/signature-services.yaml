@@ -4,6 +4,9 @@
 #   imports:
 #       - { resource: '../vendor/derafu/signature/resources/config/signature-services.yaml' }
 
+imports:
+    - { resource: '../../../xml/resources/config/xml-services.yaml' }
+
 services:
 
     _defaults:

@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\TestsSignature;
 
+use Composer\InstalledVersions;
 use Derafu\Certificate\Contract\CertificateFakerInterface;
 use Derafu\Signature\Contract\SignatureGeneratorInterface;
 use Derafu\Signature\Contract\SignatureServiceInterface;
@@ -25,6 +26,7 @@ use Derafu\TestsSignature\Support\ReadsFixtures;
 use Derafu\Translation\TranslatorFactory;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -43,8 +45,11 @@ final class ServicesTest extends TestCase
     {
         $root = dirname(__DIR__, 2);
         $container = new ContainerBuilder();
-        $loader = new YamlFileLoader($container, new FileLocator($root . '/resources/config'));
-        $loader->load($root . '/vendor/derafu/xml/resources/config/xml-services.yaml');
+        $loader = new YamlFileLoader($container, new FileLocator([
+            $root . '/resources/config',
+            (InstalledVersions::getInstallPath('derafu/xml')
+                ?? throw new RuntimeException('derafu/xml must be installed for these tests.')) . '/resources/config',
+        ]));
         $loader->load($root . '/vendor/derafu/certificate/resources/config/certificate-services.yaml');
         $loader->load('signature-services.yaml');
         $this->assertArrayHasKey(

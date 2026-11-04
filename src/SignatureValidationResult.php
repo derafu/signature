@@ -59,4 +59,33 @@ class SignatureValidationResult implements SignatureValidationResultInterface
     {
         return $this->error;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function toArray(): array
+    {
+        return [
+            'valid' => $this->isValid(),
+            'error' => $this->error !== null ? [
+                'message' => $this->error->getMessage(),
+                'code' => $this->error->getCode(),
+                'errors' => array_map(
+                    strval(...),
+                    $this->error->getErrors()
+                ),
+            ] : null,
+            'signature' => $this->signatureNode->toArray(),
+        ];
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
+    }
 }

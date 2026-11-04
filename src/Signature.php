@@ -13,7 +13,9 @@ declare(strict_types=1);
 namespace Derafu\Signature;
 
 use Derafu\Array\ArrayPath;
+use Derafu\Certificate\Certificate;
 use Derafu\Certificate\Contract\CertificateInterface;
+use Derafu\Certificate\Exception\CertificateException;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Translation\Exception\Core\TranslatableLogicException as LogicException;
 use Derafu\Xml\Contract\XmlDocumentInterface;
@@ -379,6 +381,70 @@ final class Signature implements SignatureInterface
 
         // Return instance for chaining.
         return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function toArray(): array
+    {
+        $signedInfo = ['Signature', 'SignedInfo'];
+        $reference = [...$signedInfo, 'Reference'];
+        $rsaKeyValue = ['Signature', 'KeyInfo', 'KeyValue', 'RSAKeyValue'];
+
+        return [
+            'reference' => $this->getReference(),
+            'canonicalizationMethod' => $this->getText([
+                ...$signedInfo, 'CanonicalizationMethod', '@attributes', 'Algorithm',
+            ]),
+            'signatureMethod' => $this->getText([
+                ...$signedInfo, 'SignatureMethod', '@attributes', 'Algorithm',
+            ]),
+            'digestMethod' => $this->getText([
+                ...$reference, 'DigestMethod', '@attributes', 'Algorithm',
+            ]),
+            'digestValue' => $this->getDigestValue(),
+            'signatureValue' => $this->getSignatureValue(),
+            'modulus' => $this->getText([...$rsaKeyValue, 'Modulus']),
+            'exponent' => $this->getText([...$rsaKeyValue, 'Exponent']),
+            'certificate' => $this->getX509Certificate(),
+            'certificateChain' => $this->getX509CertificateChain(),
+            'signer' => $this->getSignerData(),
+        ];
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
+    }
+
+    /**
+     * Returns the data of the signer's certificate, without the private key.
+     *
+     * @return array<string, mixed>|null `null` if the node has no certificate
+     * or it can not be read.
+     */
+    private function getSignerData(): ?array
+    {
+        $x509 = $this->getX509Certificate();
+        if ($x509 === null) {
+            return null;
+        }
+
+        try {
+            $data = (new Certificate($x509))->toArray();
+        } catch (CertificateException) {
+            return null;
+        }
+
+        unset($data['pkey']);
+
+        return $data;
     }
 
     /**

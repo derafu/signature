@@ -30,6 +30,7 @@ use Derafu\Xml\XmlDocument;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Throwable;
 
 #[CoversClass(Signature::class)]
@@ -94,7 +95,25 @@ class SignatureChileTest extends TestCase
         $cases = [];
         foreach ($files as $xmlFile) {
             $phpFile = substr($xmlFile, 0, -4) . '.php';
-            $assertions = file_exists($phpFile) ? (require $phpFile) : [];
+            $loaded = file_exists($phpFile) ? (require $phpFile) : [];
+            if (!is_array($loaded)) {
+                throw new RuntimeException(sprintf(
+                    'The fixture %s must return an array, %s given.',
+                    $phpFile,
+                    get_debug_type($loaded)
+                ));
+            }
+            $assertions = [];
+            foreach ($loaded as $key => $value) {
+                if (!is_string($key)) {
+                    throw new RuntimeException(sprintf(
+                        'The fixture %s must have string keys, %s given.',
+                        $phpFile,
+                        get_debug_type($key)
+                    ));
+                }
+                $assertions[$key] = $value;
+            }
             $cases[basename($xmlFile)] = [$xmlFile, $assertions];
         }
 
@@ -151,9 +170,62 @@ class SignatureChileTest extends TestCase
      */
     public static function specialCharactersProvider(): array
     {
-        $cases = require __DIR__ . '/../../../fixtures/l10n/cl/special_cases.php';
+        $file = __DIR__ . '/../../../fixtures/l10n/cl/special_cases.php';
+        $loaded = require $file;
+        $loadedCases = is_array($loaded)
+            ? ($loaded['testSignatureWithSpecialCharacters'] ?? null)
+            : null
+        ;
+        if (!is_array($loadedCases)) {
+            throw new RuntimeException(sprintf(
+                'The fixture %s must return an array with the key testSignatureWithSpecialCharacters.',
+                $file
+            ));
+        }
 
-        return $cases['testSignatureWithSpecialCharacters'];
+        $cases = [];
+        foreach ($loadedCases as $name => $case) {
+            if (!is_string($name) || !is_array($case)) {
+                throw new RuntimeException(sprintf(
+                    'Each case of testSignatureWithSpecialCharacters in %s must be an array with a string name.',
+                    $file
+                ));
+            }
+
+            $data = $case['data'] ?? null;
+            $reference = $case['reference'] ?? null;
+            $expectedException = $case['expectedException'] ?? null;
+            if (!is_array($data) || !is_string($reference)) {
+                throw new RuntimeException(sprintf(
+                    'The case %s in %s must have "data" as array and "reference" as string.',
+                    $name,
+                    $file
+                ));
+            }
+            if ($expectedException !== null && (
+                !is_string($expectedException)
+                || !is_a($expectedException, Throwable::class, true)
+            )) {
+                throw new RuntimeException(sprintf(
+                    'The case %s in %s must have "expectedException" as null or a class-string of Throwable.',
+                    $name,
+                    $file
+                ));
+            }
+
+            $stringKeyedData = [];
+            foreach ($data as $key => $value) {
+                $stringKeyedData[(string) $key] = $value;
+            }
+
+            $cases[$name] = [
+                'data' => $stringKeyedData,
+                'reference' => $reference,
+                'expectedException' => $expectedException,
+            ];
+        }
+
+        return $cases;
     }
 
     /**

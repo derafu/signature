@@ -14,13 +14,14 @@ namespace Derafu\Signature\Contract;
 
 use Derafu\Certificate\Contract\CertificateInterface;
 use Derafu\Xml\Contract\XmlDocumentInterface;
+use JsonSerializable;
 use LogicException;
 use NoDiscard;
 
 /**
  * Interface for the class that represents the electronic signature of an XML.
  */
-interface SignatureInterface
+interface SignatureInterface extends JsonSerializable
 {
     /**
      * Assigns the data of the signature node.
@@ -148,4 +149,17 @@ interface SignatureInterface
      */
     #[NoDiscard()]
     public function getSignatureValue(): ?string;
+
+    /**
+     * Returns the data of the signature node as an array.
+     *
+     * Includes everything the node declares: reference, algorithms, digest
+     * and signature values, public key, certificates and the data of the
+     * signer's certificate (`null` if it can not be read). The XML of the node
+     * and the private key are never included.
+     *
+     * @return array{reference: string|null, canonicalizationMethod: string|null, signatureMethod: string|null, digestMethod: string|null, digestValue: string|null, signatureValue: string|null, modulus: string|null, exponent: string|null, certificate: string|null, certificateChain: string[], signer: array<string, mixed>|null}
+     */
+    #[NoDiscard()]
+    public function toArray(): array;
 }

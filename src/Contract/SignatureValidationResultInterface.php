@@ -13,13 +13,14 @@ declare(strict_types=1);
 namespace Derafu\Signature\Contract;
 
 use Derafu\Signature\Exception\SignatureException;
+use JsonSerializable;
 use NoDiscard;
 
 /**
  * Interface for the class that represents the result of the validation of an
  * XML signature node.
  */
-interface SignatureValidationResultInterface
+interface SignatureValidationResultInterface extends JsonSerializable
 {
     /**
      * Returns `true` if the signature is valid (no validation error).
@@ -46,4 +47,14 @@ interface SignatureValidationResultInterface
      */
     #[NoDiscard()]
     public function getError(): ?SignatureException;
+
+    /**
+     * Returns the result as an array.
+     *
+     * @return array{valid: bool, error: array{message: string, code: int, errors: list<string>}|null, signature: array<string, mixed>}
+     * Validity, the validation error (message, code and the errors that
+     * explain it, without trace) and the data of the signature node.
+     */
+    #[NoDiscard()]
+    public function toArray(): array;
 }

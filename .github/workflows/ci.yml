@@ -36,8 +36,10 @@ jobs:
       - name: Install xmlsec1
         run: |
           sudo apt-get update
-          sudo apt-get install -y xmlsec1 libxmlsec1-openssl
+          sudo apt-get install -y xmlsec1
           xmlsec1 --version
+          # The tests need the OpenSSL backend of xmlsec1.
+          xmlsec1 --version | grep -q openssl
 
       - name: Install Dependencies
         run: composer install --no-progress --no-suggest --prefer-dist

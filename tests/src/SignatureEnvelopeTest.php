@@ -145,16 +145,20 @@ final class SignatureEnvelopeTest extends TestCase
             $signed[] = $this->service->signXml(
                 $this->document($number, $encoding),
                 $this->certificate,
-                'D' . $number,
-                signaturePrefix: $prefix
+                [
+                    'reference' => 'D' . $number,
+                    'signature_prefix' => $prefix,
+                ]
             );
         }
 
         return $this->service->signXml(
             $this->envelope($signed, $encoding, $xsi),
             $this->certificate,
-            'Set',
-            signaturePrefix: $prefix
+            [
+                'reference' => 'Set',
+                'signature_prefix' => $prefix,
+            ]
         );
     }
 
@@ -293,8 +297,10 @@ final class SignatureEnvelopeTest extends TestCase
         $package = $this->service->signXml(
             $this->envelope($signed, $encoding, $xsi),
             $this->certificate,
-            'Set',
-            signaturePrefix: $prefix
+            [
+                'reference' => 'Set',
+                'signature_prefix' => $prefix,
+            ]
         );
 
         $this->assertPackageIsValidated($package, $encoding, $documents);
@@ -313,8 +319,10 @@ final class SignatureEnvelopeTest extends TestCase
             $signed[] = $this->service->signXml(
                 $this->document($number, $encoding),
                 $this->certificate,
-                'D' . $number,
-                signaturePrefix: $prefix
+                [
+                    'reference' => 'D' . $number,
+                    'signature_prefix' => $prefix,
+                ]
             );
         }
 

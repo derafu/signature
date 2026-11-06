@@ -109,7 +109,7 @@ final class ServicesTest extends TestCase
         $this->assertInstanceOf(SignatureServiceInterface::class, $service);
         $xml = $this->readFixture(dirname(__DIR__) . '/fixtures/unsigned_utf8.xml');
 
-        $signed = $service->signXml($xml, $faker->createFake(), 'Derafu_SetDoc');
+        $signed = $service->signXml($xml, $faker->createFake(), ['reference' => 'Derafu_SetDoc']);
         $results = $service->validateXml($signed);
         $this->assertCount(1, $results);
         $this->assertTrue($results[0]->isValid());

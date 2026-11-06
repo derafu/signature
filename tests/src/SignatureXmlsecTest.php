@@ -264,8 +264,10 @@ final class SignatureXmlsecTest extends TestCase
         $signed = $this->service->signXml(
             $this->unsigned(self::documents()[$document]),
             $this->certificate,
-            $reference,
-            signaturePrefix: $prefix
+            [
+                'reference' => $reference,
+                'signature_prefix' => $prefix,
+            ]
         );
         $ids = self::idsOf($document);
 
@@ -282,8 +284,10 @@ final class SignatureXmlsecTest extends TestCase
         $signed = $this->service->signXml(
             $this->unsigned(self::documents()['pretty']),
             $this->certificate,
-            'A',
-            includeCertificateChain: true
+            [
+                'reference' => 'A',
+                'include_certificate_chain' => true,
+            ]
         );
 
         $this->assertGreaterThan(1, substr_count($signed, '<X509Certificate>'));
@@ -295,10 +299,12 @@ final class SignatureXmlsecTest extends TestCase
         $first = $this->service->signXml(
             $this->unsigned(self::documents()['pretty']),
             $this->certificate,
-            'A',
-            signaturePrefix: 'ds'
+            [
+                'reference' => 'A',
+                'signature_prefix' => 'ds',
+            ]
         );
-        $both = $this->service->signXml($first, $this->certificate, 'A');
+        $both = $this->service->signXml($first, $this->certificate, ['reference' => 'A']);
 
         $this->assertTrue($this->verifyWithXmlsec($both, 'ID Doc', 1));
         $this->assertTrue($this->verifyWithXmlsec($both, 'ID Doc', 2));
@@ -312,7 +318,7 @@ final class SignatureXmlsecTest extends TestCase
         ]);
         $byXmlsec = $this->signWithXmlsec(str_replace('%SIG%', $template, self::documents()['pretty']));
 
-        $both = $this->service->signXml($byXmlsec, $this->certificate, 'A', signaturePrefix: 'ds');
+        $both = $this->service->signXml($byXmlsec, $this->certificate, ['reference' => 'A', 'signature_prefix' => 'ds']);
 
         $this->assertTrue($this->verifyWithXmlsec($both, 'ID Doc', 1));
         $this->assertTrue($this->verifyWithXmlsec($both, 'ID Doc', 2));

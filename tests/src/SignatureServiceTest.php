@@ -109,7 +109,7 @@ class SignatureServiceTest extends TestCase
         $xml = new XmlDocument();
         $xml->loadXml($this->readFixture($this->fixturesDir . '/unsigned.xml'));
 
-        $xmlSigned = $this->service->signXml($xml, $this->certificate, 'Derafu_SetDoc');
+        $xmlSigned = $this->service->signXml($xml, $this->certificate, ['reference' => 'Derafu_SetDoc']);
 
         $this->assertStringContainsString('<Signature', $xmlSigned);
         $results = $this->service->validateXml($xmlSigned);
@@ -162,7 +162,9 @@ class SignatureServiceTest extends TestCase
         $xmlSigned = $this->service->signXml(
             $xml,
             $this->certificate,
-            includeCertificateChain: true
+            [
+                'include_certificate_chain' => true,
+            ]
         );
 
         $this->assertSame(
@@ -220,7 +222,7 @@ class SignatureServiceTest extends TestCase
         $xml = new XmlDocument();
         $xml->loadXml($this->readFixture($this->fixturesDir . '/unsigned_utf8.xml'));
 
-        $xmlSigned = $this->service->signXml($xml, $this->certificate, 'Derafu_SetDoc');
+        $xmlSigned = $this->service->signXml($xml, $this->certificate, ['reference' => 'Derafu_SetDoc']);
 
         $this->assertStringContainsString('<Signature', $xmlSigned);
         $results = $this->service->validateXml($xmlSigned);
@@ -240,8 +242,10 @@ class SignatureServiceTest extends TestCase
         $xmlSigned = $this->service->signXml(
             $xml,
             $this->certificate,
-            'Derafu_SetDoc',
-            $customNamespace
+            [
+                'reference' => 'Derafu_SetDoc',
+                'signature_namespace' => $customNamespace,
+            ]
         );
 
         // The Signature element must carry the custom namespace.
@@ -267,7 +271,7 @@ class SignatureServiceTest extends TestCase
         $xml = new XmlDocument();
         $xml->loadXml($this->readFixture($this->fixturesDir . '/unsigned.xml'));
 
-        $signature = $this->service->signXml($xml, $this->certificate, 'nonexistent_id');
+        $signature = $this->service->signXml($xml, $this->certificate, ['reference' => 'nonexistent_id']);
         // $signature is not used because the exception is thrown before it is returned.
     }
 

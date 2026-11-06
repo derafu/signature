@@ -16,6 +16,8 @@ use Derafu\Certificate\Contract\CertificateInterface;
 use Derafu\Certificate\Contract\OpenSslInterface;
 use Derafu\Certificate\Exception\CertificateException;
 use Derafu\Certificate\Service\OpenSsl;
+use Derafu\Config\Contract\OptionsInterface;
+use Derafu\Config\Options;
 use Derafu\Signature\Contract\SignatureGeneratorInterface;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Signature\Exception\SignatureException;
@@ -29,6 +31,7 @@ use Derafu\Xml\Exception\XmlException;
 use Derafu\Xml\XmlDocument;
 use Derafu\Xml\XmlHelper;
 use DOMNode;
+use Symfony\Component\OptionsResolver\Exception\ExceptionInterface as OptionsResolverException;
 
 /**
  * Class that handles the generation of electronic signatures, particularly for
@@ -36,6 +39,21 @@ use DOMNode;
  */
 final class SignatureGenerator implements SignatureGeneratorInterface
 {
+    /**
+     * Schema of the options of `signXml()`.
+     *
+     * The generator does not have options of its own: the options are the ones
+     * that are given to each signature, and they are valid only for it.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    private const OPTIONS_SCHEMA = [
+        'reference' => ['types' => ['string', 'null'], 'default' => null],
+        'signature_namespace' => ['types' => ['string', 'null'], 'default' => null],
+        'include_certificate_chain' => ['types' => 'bool', 'default' => false],
+        'signature_prefix' => ['types' => ['string', 'null'], 'default' => null],
+    ];
+
     /**
      * Constructor of the signature generator.
      *
@@ -45,6 +63,29 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         private readonly XmlServiceInterface $xmlService,
         private readonly OpenSslInterface $openSsl = new OpenSsl()
     ) {
+    }
+
+    /**
+     * Resolves the options of a signature with the schema, without keeping
+     * them: what a signature does not say has the default value, and what
+     * another signature said does not pass to it.
+     *
+     * @param array<array-key, mixed>|OptionsInterface $options
+     * @throws SignatureException If an option is not valid.
+     */
+    private function resolveOptions(array|OptionsInterface $options): OptionsInterface
+    {
+        try {
+            return new Options($options, self::OPTIONS_SCHEMA);
+        } catch (OptionsResolverException $e) {
+            throw new SignatureException(
+                [
+                    'The options of the signature are not valid: {detail}',
+                    'detail' => $e->getMessage(),
+                ],
+                previous: $e
+            );
+        }
     }
 
     /**
@@ -97,11 +138,15 @@ final class SignatureGenerator implements SignatureGeneratorInterface
     public function signXml(
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
-        ?string $reference = null,
-        ?string $signatureNamespace = null,
-        bool $includeCertificateChain = false,
-        ?string $signaturePrefix = null
+        array|OptionsInterface $options = []
     ): string {
+        // The options are valid only for this signature.
+        $reader = $this->resolveOptions($options)->getReader();
+        $reference = $reader->getString('reference');
+        $signatureNamespace = $reader->getString('signature_namespace');
+        $includeCertificateChain = $reader->requireBool('include_certificate_chain');
+        $signaturePrefix = $reader->getString('signature_prefix');
+
         // If an Xml object is passed, it is converted to a string as the object
         // saves it, with its own format settings: the document that is signed
         // is the one that the user has, and its format is not changed.

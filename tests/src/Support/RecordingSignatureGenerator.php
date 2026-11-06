@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\TestsSignature\Support;
 
 use Derafu\Certificate\Contract\CertificateInterface;
+use Derafu\Config\Contract\OptionsInterface;
 use Derafu\Signature\Contract\SignatureGeneratorInterface;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 
@@ -43,19 +44,9 @@ final class RecordingSignatureGenerator implements SignatureGeneratorInterface
     public function signXml(
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
-        ?string $reference = null,
-        ?string $signatureNamespace = null,
-        bool $includeCertificateChain = false,
-        ?string $signaturePrefix = null
+        array|OptionsInterface $options = []
     ): string {
-        $signed = $this->generator->signXml(
-            $xml,
-            $certificate,
-            $reference,
-            $signatureNamespace,
-            $includeCertificateChain,
-            $signaturePrefix
-        );
+        $signed = $this->generator->signXml($xml, $certificate, $options);
         // The signature that is made is the last one of the document.
         SignedDocumentsLog::record(
             SignedDocumentsLog::SIGNED_BY_LIBRARY,

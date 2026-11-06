@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Signature\Service;
 
 use Derafu\Certificate\Contract\CertificateInterface;
+use Derafu\Config\Contract\OptionsInterface;
 use Derafu\Signature\Contract\SignatureGeneratorInterface;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Signature\Contract\SignatureServiceInterface;
@@ -53,19 +54,9 @@ final class SignatureService implements SignatureServiceInterface
     public function signXml(
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
-        ?string $reference = null,
-        ?string $signatureNamespace = null,
-        bool $includeCertificateChain = false,
-        ?string $signaturePrefix = null
+        array|OptionsInterface $options = []
     ): string {
-        return $this->generator->signXml(
-            $xml,
-            $certificate,
-            $reference,
-            $signatureNamespace,
-            $includeCertificateChain,
-            $signaturePrefix
-        );
+        return $this->generator->signXml($xml, $certificate, $options);
     }
 
     /**

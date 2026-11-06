@@ -272,7 +272,9 @@ class SignatureChileTest extends TestCase
         $xmlSigned = $this->service->signXml(
             $xmlIso,
             $this->certificate,
-            $reference
+            [
+                'reference' => $reference,
+            ]
         );
         $this->assertStringContainsString('<Signature', $xmlSigned);
 

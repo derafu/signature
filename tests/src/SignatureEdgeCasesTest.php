@@ -156,7 +156,7 @@ final class SignatureEdgeCasesTest extends TestCase
     {
         $certificate = (new CertificateFaker(new CertificateLoader()))->createFake();
         $signed = (new SignatureGenerator($this->xmlService))
-            ->signXml('<?xml version="1.0"?><a><b ID="B1"/></a>', $certificate, '#B1')
+            ->signXml('<?xml version="1.0"?><a><b ID="B1"/></a>', $certificate, ['reference' => '#B1'])
         ;
         $withRelativeNamespace = str_replace(
             '<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">',
@@ -181,7 +181,9 @@ final class SignatureEdgeCasesTest extends TestCase
         (new SignatureGenerator($this->xmlService))->signXml(
             '<?xml version="1.0"?><a><b/></a>',
             $certificate,
-            signatureNamespace: 'relative'
+            [
+                'signature_namespace' => 'relative',
+            ]
         );
     }
 
@@ -190,7 +192,7 @@ final class SignatureEdgeCasesTest extends TestCase
         $certificate = (new CertificateFaker(new CertificateLoader()))->createFake();
         $generator = new SignatureGenerator($this->xmlService);
         $validator = new SignatureValidator($generator, $this->xmlService);
-        $signed = $generator->signXml('<?xml version="1.0"?><a><b ID="B1"/></a>', $certificate, '#B1');
+        $signed = $generator->signXml('<?xml version="1.0"?><a><b ID="B1"/></a>', $certificate, ['reference' => '#B1']);
         $document = new XmlDocument();
         $document->loadXml($signed);
         $signatureNode = $validator->createSignatureNode(

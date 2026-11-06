@@ -180,7 +180,7 @@ final class SignatureShapeToolsTest extends TestCase
         $xml = "<Root>\n  <Doc ID=\"A\">\n    <V>1</V>\n  </Doc>\n</Root>\n";
 
         // The library signs and validates.
-        $signed = $this->service->signXml($xml, $this->certificate, 'A');
+        $signed = $this->service->signXml($xml, $this->certificate, ['reference' => 'A']);
         $this->assertTrue($this->service->validateXml($signed)[0]->isValid());
         // A document that is not valid is not exercised as valid.
         $this->assertFalse($this->service->validateXml(str_replace('<V>1</V>', '<V>2</V>', $signed))[0]->isValid());
@@ -188,7 +188,7 @@ final class SignatureShapeToolsTest extends TestCase
         $fixture = $this->fixture('signed/xmlsec_sha256_prefixed.xml');
         $this->assertTrue($this->service->validateXml($fixture)[0]->isValid());
         // The library signs over it: only the new signature is its own.
-        $both = $this->service->signXml($fixture, $this->certificate, 'A', signaturePrefix: 'ds');
+        $both = $this->service->signXml($fixture, $this->certificate, ['reference' => 'A', 'signature_prefix' => 'ds']);
         $this->assertCount(2, $this->service->validateXml($both));
 
         $modes = ShapeCoverage::atomsOfTests($this->log, []);
@@ -213,7 +213,7 @@ final class SignatureShapeToolsTest extends TestCase
         ]);
         $byXmlsec = $this->signWithXmlsec(str_replace('%SIG%', $template, $xml));
         $this->assertTrue($this->service->validateXml($byXmlsec)[0]->isValid());
-        $byLibrary = $this->service->signXml(str_replace('%SIG%', '', $xml), $this->certificate, 'A');
+        $byLibrary = $this->service->signXml(str_replace('%SIG%', '', $xml), $this->certificate, ['reference' => 'A']);
         $this->assertTrue($this->verifyWithXmlsec($byLibrary));
         // A document that xmlsec1 does not verify is not exercised.
         $this->assertFalse($this->verifyWithXmlsec(str_replace('<V>1</V>', '<V>2</V>', $byLibrary)));

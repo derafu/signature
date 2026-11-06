@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Signature\Contract;
 
 use Derafu\Certificate\Contract\CertificateInterface;
+use Derafu\Config\Contract\OptionsInterface;
 use Derafu\Signature\Exception\SignatureException;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Exception\XmlException;
@@ -45,32 +46,35 @@ interface SignatureGeneratorInterface
      * @param XmlDocumentInterface|string $xml XML document to be signed.
      * @param CertificateInterface $certificate Digital certificate to be used
      * for signing.
-     * @param ?string $reference Reference to which the signature is made. If
-     * not specified, the digest of the entire XML document will be signed.
-     * @param ?string $signatureNamespace The namespace of the `Signature`
-     * element.
-     * @param bool $includeCertificateChain Whether to embed the certificate's
-     * trust chain (if any) as additional `X509Certificate` nodes inside
-     * `X509Data`. Disabled by default: most verifiers (e.g. the Chilean SII)
-     * expect a single certificate and never need the chain, since they
-     * validate the CA out of band. Enable it for verifiers that require or
-     * accept the full chain per the XML-DSIG standard.
-     * @param string|null $signaturePrefix The prefix of the namespace with
-     * which the elements of the signature are named (`ds` gives `ds:Signature`,
-     * `ds:SignedInfo`, ...). If it is `null`, the elements have no prefix and
-     * the namespace is declared as the default one.
+     * @param array<array-key, mixed>|OptionsInterface $options Options of the
+     * signature. They are valid only for this signature (the generator does not
+     * keep them), and the ones that are not given have the default value:
+     * - `reference` (`string|null`, default `null`): Reference to which the
+     *   signature is made. If it is not specified, the digest of the entire XML
+     *   document will be signed.
+     * - `signature_namespace` (`string|null`, default `null`): The namespace of
+     *   the `Signature` element.
+     * - `include_certificate_chain` (`bool`, default `false`): Whether to embed
+     *   the certificate's trust chain (if any) as additional `X509Certificate`
+     *   nodes inside `X509Data`. Disabled by default: most verifiers (e.g. the
+     *   Chilean SII) expect a single certificate and never need the chain,
+     *   since they validate the CA out of band. Enable it for verifiers that
+     *   require or accept the full chain per the XML-DSIG standard.
+     * - `signature_prefix` (`string|null`, default `null`): The prefix of the
+     *   namespace with which the elements of the signature are named (`ds`
+     *   gives `ds:Signature`, `ds:SignedInfo`, ...). If it is `null`, the
+     *   elements have no prefix and the namespace is declared as the default
+     *   one.
      * @return string String XML with the generated signature included in the
      * "Signature" tag at the end of the XML (last element within the root node).
-     * @throws SignatureException If any problem occurs while signing.
+     * @throws SignatureException If an option is not valid, or any problem
+     * occurs while signing.
      */
     #[NoDiscard()]
     public function signXml(
         XmlDocumentInterface|string $xml,
         CertificateInterface $certificate,
-        ?string $reference = null,
-        ?string $signatureNamespace = null,
-        bool $includeCertificateChain = false,
-        ?string $signaturePrefix = null
+        array|OptionsInterface $options = []
     ): string;
 
     /**

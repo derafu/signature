@@ -210,7 +210,7 @@ final class SignatureReferencesTest extends TestCase
     {
         $xml = "<Root>\n  <Doc Id=\"a\">\n    <V>1</V>\n  </Doc>\n</Root>\n";
 
-        $signed = $this->service->signXml($xml, $this->certificate, 'a');
+        $signed = $this->service->signXml($xml, $this->certificate, ['reference' => 'a']);
 
         $this->assertTrue($this->service->validateXml($signed)[0]->isValid());
     }

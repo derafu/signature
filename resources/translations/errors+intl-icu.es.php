@@ -22,6 +22,9 @@ return [
         'No es posible generar la firma del nodo Signature si no se ha asignado el certificado digital.',
     'SignedInfo node is missing from the generated Signature XML.' =>
         'Falta el nodo SignedInfo en el XML de la firma generada.',
+    // SignatureGenerator: options.
+    'The options of the signature are not valid: {detail}' =>
+        'Las opciones de la firma no son válidas: {detail}',
     // Signature.
     'The namespace prefix "{prefix}" of the signature is not valid.' =>
         'El prefijo de espacio de nombres "{prefix}" de la firma no es válido.',

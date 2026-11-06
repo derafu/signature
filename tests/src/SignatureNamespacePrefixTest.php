@@ -108,8 +108,10 @@ final class SignatureNamespacePrefixTest extends TestCase
         $signed = $this->service->signXml(
             $xml,
             $this->certificate,
-            $reference,
-            signaturePrefix: $prefix
+            [
+                'reference' => $reference,
+                'signature_prefix' => $prefix,
+            ]
         );
 
         $results = $this->service->validateXml($signed);
@@ -126,8 +128,10 @@ final class SignatureNamespacePrefixTest extends TestCase
         $signed = $this->service->signXml(
             $xml,
             $this->certificate,
-            'A',
-            signaturePrefix: 'ds'
+            [
+                'reference' => 'A',
+                'signature_prefix' => 'ds',
+            ]
         );
 
         $this->assertStringContainsString('<ds:Signature xmlns:ds="' . self::DSIG . '">', $signed);
@@ -150,9 +154,11 @@ final class SignatureNamespacePrefixTest extends TestCase
         $signed = $this->service->signXml(
             $xml,
             $this->certificate,
-            'A',
-            'http://example.com/signature',
-            signaturePrefix: 'ds'
+            [
+                'reference' => 'A',
+                'signature_namespace' => 'http://example.com/signature',
+                'signature_prefix' => 'ds',
+            ]
         );
 
         $this->assertStringContainsString('<ds:Signature xmlns:ds="http://example.com/signature">', $signed);
@@ -162,7 +168,7 @@ final class SignatureNamespacePrefixTest extends TestCase
     public function testTamperedXmlWithPrefixedSignatureIsNotValid(): void
     {
         $xml = "<Root>\n  <Doc ID=\"A\">\n    <V>1</V>\n  </Doc>\n</Root>\n";
-        $signed = $this->service->signXml($xml, $this->certificate, 'A', signaturePrefix: 'ds');
+        $signed = $this->service->signXml($xml, $this->certificate, ['reference' => 'A', 'signature_prefix' => 'ds']);
 
         $results = $this->service->validateXml(
             str_replace('<V>1</V>', '<V>2</V>', $signed)
@@ -175,7 +181,7 @@ final class SignatureNamespacePrefixTest extends TestCase
     public function testTamperedSignedInfoWithPrefixedSignatureIsNotValid(): void
     {
         $xml = "<Root>\n  <Doc ID=\"A\">\n    <V>1</V>\n  </Doc>\n</Root>\n";
-        $signed = $this->service->signXml($xml, $this->certificate, 'A', signaturePrefix: 'ds');
+        $signed = $this->service->signXml($xml, $this->certificate, ['reference' => 'A', 'signature_prefix' => 'ds']);
 
         $results = $this->service->validateXml(
             str_replace('<ds:Reference URI="#A">', '<ds:Reference URI="#A" Id="x">', $signed)
@@ -187,7 +193,7 @@ final class SignatureNamespacePrefixTest extends TestCase
     public function testPrefixedSignatureNodeIsReadWithoutThePrefix(): void
     {
         $xml = "<Root>\n  <Doc ID=\"A\">\n    <V>1</V>\n  </Doc>\n</Root>\n";
-        $signed = $this->service->signXml($xml, $this->certificate, 'A', signaturePrefix: 'ds');
+        $signed = $this->service->signXml($xml, $this->certificate, ['reference' => 'A', 'signature_prefix' => 'ds']);
         $doc = new DOMDocument();
         $doc->loadXML($signed);
 
@@ -268,7 +274,7 @@ final class SignatureNamespacePrefixTest extends TestCase
     public function testSignatureOfSignedInfoWithoutNamespaceDeclarationsIsValidated(): void
     {
         $xml = "<Root>\n  <Doc ID=\"A\">\n    <V>1</V>\n  </Doc>\n</Root>\n";
-        $signed = $this->service->signXml($xml, $this->certificate, 'A', signaturePrefix: 'ds');
+        $signed = $this->service->signXml($xml, $this->certificate, ['reference' => 'A', 'signature_prefix' => 'ds']);
         $doc = new DOMDocument();
         $doc->loadXML($signed);
         $signedInfo = $doc->getElementsByTagNameNS(self::DSIG, 'SignedInfo')->item(0);
@@ -291,7 +297,7 @@ final class SignatureNamespacePrefixTest extends TestCase
     public function testDocumentSignedAloneAndEmbeddedInAnEnvelopeIsValidated(?string $prefix): void
     {
         $xml = "<Cal xmlns=\"http://example.com/cal\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n  <Doc ID=\"C1\">\n    <V>1</V>\n  </Doc>\n</Cal>\n";
-        $signed = $this->service->signXml($xml, $this->certificate, 'C1', signaturePrefix: $prefix);
+        $signed = $this->service->signXml($xml, $this->certificate, ['reference' => 'C1', 'signature_prefix' => $prefix]);
         $cal = (string) preg_replace('/^<\?xml[^>]*>\s*/', '', $signed);
         $envelope = "<Envelope xmlns=\"http://example.com/envelope\" xmlns:ds=\"" . self::DSIG . "\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n"
             . $cal
@@ -317,8 +323,8 @@ final class SignatureNamespacePrefixTest extends TestCase
     public function testAllTheSignaturesOfADocumentAreValidated(): void
     {
         $xml = "<Root>\n  <Doc ID=\"A\">\n    <V>1</V>\n  </Doc>\n</Root>\n";
-        $first = $this->service->signXml($xml, $this->certificate, 'A', signaturePrefix: 'ds');
-        $both = $this->service->signXml($first, $this->certificate, 'A');
+        $first = $this->service->signXml($xml, $this->certificate, ['reference' => 'A', 'signature_prefix' => 'ds']);
+        $both = $this->service->signXml($first, $this->certificate, ['reference' => 'A']);
 
         $results = $this->service->validateXml($both);
 
@@ -332,7 +338,7 @@ final class SignatureNamespacePrefixTest extends TestCase
         $xml = new XmlDocument();
         $xml->loadXml("<Root>\n  <Doc ID=\"A\">\n    <V>1</V>\n  </Doc>\n</Root>\n");
 
-        $signed = $this->service->signXml($xml, $this->certificate, null, signaturePrefix: 'ds');
+        $signed = $this->service->signXml($xml, $this->certificate, ['signature_prefix' => 'ds']);
 
         $this->assertStringContainsString('<ds:Signature', $signed);
         $this->assertTrue($this->service->validateXml($signed)[0]->isValid());

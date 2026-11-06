@@ -82,7 +82,7 @@ final class SignatureXmlDocumentInputTest extends TestCase
         $unsigned = $document->saveXml();
         $this->assertStringContainsString("\n  <Set ID=\"A\">", $unsigned);
 
-        $signed = $this->service->signXml($document, $this->certificate, 'A');
+        $signed = $this->service->signXml($document, $this->certificate, ['reference' => 'A']);
 
         $this->assertTrue($this->isValid($signed));
         $this->assertSame($this->withoutSignature($unsigned), $this->withoutSignature($signed));
@@ -117,7 +117,7 @@ final class SignatureXmlDocumentInputTest extends TestCase
         $document = new XmlDocument();
         $document->loadXml($xml);
 
-        $signed = $this->service->signXml($document, $this->certificate, 'A');
+        $signed = $this->service->signXml($document, $this->certificate, ['reference' => 'A']);
 
         $this->assertTrue($this->isValid($signed));
         $this->assertSame($xml, $this->withoutSignature($signed));
@@ -135,7 +135,7 @@ final class SignatureXmlDocumentInputTest extends TestCase
         $unsigned = $document->saveXml();
         $this->assertStringContainsString("\n  <Set ID=\"A\">", $unsigned);
 
-        $signed = $this->service->signXml($document, $this->certificate, 'A');
+        $signed = $this->service->signXml($document, $this->certificate, ['reference' => 'A']);
 
         $this->assertTrue($this->isValid($signed));
         $this->assertSame($this->withoutSignature($unsigned), $this->withoutSignature($signed));
@@ -152,7 +152,9 @@ final class SignatureXmlDocumentInputTest extends TestCase
         $signed = $this->service->signXml(
             '<Root><Set ID="A"><Header>1</Header></Set></Root>',
             $this->certificate,
-            'A'
+            [
+                'reference' => 'A',
+            ]
         );
         $this->assertTrue($this->isValid($signed));
 

@@ -19,6 +19,8 @@ use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\Signature\Support\ReferenceTarget;
+use Derafu\Signature\Support\SignatureElements;
 use Derafu\Signature\Translation\SignatureTranslationResourceProvider;
 use Derafu\TestsSignature\Support\ReadsFixtures;
 use Derafu\Translation\Contract\TranslatableInterface;
@@ -32,6 +34,7 @@ use Derafu\Xml\Service\XmlValidator;
 use Derafu\Xml\XmlDocument;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\Translation\Translator;
@@ -48,6 +51,8 @@ use Symfony\Component\Translation\Translator;
 #[CoversClass(SignatureValidationResult::class)]
 #[CoversClass(Signature::class)]
 #[CoversClass(SignatureTranslationResourceProvider::class)]
+#[UsesClass(ReferenceTarget::class)]
+#[UsesClass(SignatureElements::class)]
 final class SignatureExceptionTest extends TestCase
 {
     use ReadsFixtures;

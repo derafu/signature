@@ -19,6 +19,8 @@ use Derafu\Certificate\Service\CertificateLoader;
 use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Service\SignatureGenerator;
 use Derafu\Signature\Service\SignatureValidator;
+use Derafu\Signature\Support\ReferenceTarget;
+use Derafu\Signature\Support\SignatureElements;
 use Derafu\Translation\Contract\TranslatableInterface;
 use Derafu\Translation\TranslatableMessage;
 use Derafu\Xml\Service\XmlDecoder;
@@ -26,6 +28,7 @@ use Derafu\Xml\Service\XmlEncoder;
 use Derafu\Xml\Service\XmlService;
 use Derafu\Xml\Service\XmlValidator;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -37,6 +40,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureGenerator::class)]
 #[CoversClass(SignatureValidator::class)]
 #[CoversClass(SignatureException::class)]
+#[UsesClass(ReferenceTarget::class)]
+#[UsesClass(SignatureElements::class)]
 final class SignatureOpenSslTest extends TestCase
 {
     private XmlService $xmlService;

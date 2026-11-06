@@ -1,0 +1,95 @@
+{
+    "legacy_reference_iso_8859_1.xml": {
+        "description": "A document in ISO-8859-1 without namespaces, signed through the reference of its data by the library as it was before the prefix and the references of the signatures were supported.",
+        "signatures": [true],
+        "changes": [
+            {"search": "<V>1</V>", "replace": "<V>2</V>", "signatures": [false]}
+        ]
+    },
+    "legacy_whole_document_utf_8.xml": {
+        "description": "A document in UTF-8 signed as a whole (no reference) by the library as it was before.",
+        "signatures": [true],
+        "changes": [
+            {"search": "<V>1</V>", "replace": "<V>2</V>", "signatures": [false]}
+        ]
+    },
+    "legacy_default_namespace.xml": {
+        "description": "A document with a default namespace signed through a reference by the library as it was before.",
+        "signatures": [true],
+        "changes": [
+            {"search": "<V>1</V>", "replace": "<V>2</V>", "signatures": [false]}
+        ]
+    },
+    "legacy_package_with_xsi_iso_8859_1.xml": {
+        "description": "An envelope in ISO-8859-1, with the xsi namespace, that has two documents signed alone and is signed over the set of documents, by the library as it was before: three signatures.",
+        "signatures": [true, true, true],
+        "changes": [
+            {"search": "oa 1</Description>", "replace": "oa 9</Description>", "signatures": [false, true, false]},
+            {"search": "<Sender>76192083-9", "replace": "<Sender>76192083-0", "signatures": [true, true, false]}
+        ]
+    },
+    "legacy_package_without_xsi_utf_8.xml": {
+        "description": "An envelope in UTF-8 without the xsi namespace, with a document signed alone and the signature of the set, by the library as it was before: two signatures.",
+        "signatures": [true, true],
+        "changes": [
+            {"search": "oa 1</Description>", "replace": "oa 9</Description>", "signatures": [false, false]},
+            {"search": "<Sender>76192083-9", "replace": "<Sender>76192083-0", "signatures": [true, false]}
+        ]
+    },
+    "xmlsec_sha256_prefixed.xml": {
+        "description": "A document signed by xmlsec1 with the prefix ds, SHA256, enveloped and canonicalization transforms, in a document with several namespaces.",
+        "signatures": [true],
+        "changes": [
+            {"search": "<V>1</V>", "replace": "<V>2</V>", "signatures": [false]}
+        ]
+    },
+    "xmlsec_whole_document.xml": {
+        "description": "A document signed by xmlsec1 as a whole with the enveloped signature transform.",
+        "signatures": [true],
+        "changes": [
+            {"search": "<V>1</V>", "replace": "<V>2</V>", "signatures": [false]}
+        ]
+    },
+    "xmlsec_signed_properties.xml": {
+        "description": "A document signed by xmlsec1 with two references, the second one to properties inside an Object of the signature that are identified by Id (the structure of the signatures of UBL).",
+        "signatures": [true],
+        "changes": [
+            {"search": "<V>1</V>", "replace": "<V>2</V>", "signatures": [false]},
+            {"search": "<SigningTime>2020", "replace": "<SigningTime>2021", "signatures": [false]}
+        ]
+    },
+    "xmlsec_package.xml": {
+        "description": "An envelope with two documents signed alone and the signature of the set, all signed by xmlsec1: three signatures.",
+        "signatures": [true, true, true],
+        "changes": [
+            {"search": "oa 1</Description>", "replace": "oa 9</Description>", "signatures": [false, true, false]},
+            {"search": "<Sender>76192083-9", "replace": "<Sender>76192083-0", "signatures": [true, true, false]}
+        ]
+    },
+    "prefixed_unknown_transform_nested.xml": {
+        "description": "The shape of the books of a tax authority: signatures with the prefix ds, a transform that is not one of XML Signature, and a signed statement inside a signed book, in a document with three namespaces. Xmlsec1 does not support the transform.",
+        "signatures": [true, true],
+        "changes": [
+            {"search": "<Amount>3981914</Amount>", "replace": "<Amount>3981915</Amount>", "signatures": [false, false]},
+            {"search": "a 2016</Header>", "replace": "a 2017</Header>", "signatures": [true, false]}
+        ]
+    },
+    "prefixed_signed_info_without_namespaces.xml": {
+        "description": "The same shape, with the SignedInfo signed as a fragment that does not declare the namespaces that are in scope, as the signatures that the tax authority accepts. Xmlsec1 rejects them.",
+        "signatures": [true, true],
+        "changes": [
+            {"search": "<Amount>3981914</Amount>", "replace": "<Amount>3981915</Amount>", "signatures": [false, false]},
+            {"search": "a 2016</Header>", "replace": "a 2017</Header>", "signatures": [true, false]}
+        ]
+    },
+    "incomplete_signature.xml": {
+        "description": "A signature of XML Signature without SignedInfo, as the templates that are completed later: it is a signature that is not valid, not an error.",
+        "signatures": [false],
+        "changes": []
+    },
+    "element_named_signature_that_is_not_a_signature.xml": {
+        "description": "An element named Signature that is not an electronic signature (the descriptive one of UBL): the document has no signatures.",
+        "exception": "No signatures were found",
+        "changes": []
+    }
+}

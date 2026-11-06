@@ -20,6 +20,8 @@ use Derafu\Signature\Contract\SignatureGeneratorInterface;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Signature;
+use Derafu\Signature\Support\ReferenceTarget;
+use Derafu\Signature\Support\SignatureElements;
 use Derafu\Translation\Exception\Core\TranslatableLogicException as LogicException;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Contract\XmlServiceInterface;
@@ -94,6 +96,12 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // Load the XML that will be signed.
         $doc = new XmlDocument();
         $doc->loadXml($xml);
+
+        // The document is signed as it will be written, with the "pretty"
+        // format. An XML without it (all in one line) is formatted before
+        // calculating the digest, since formatting it later would change the
+        // data that was signed.
+        $doc->loadXml($doc->saveXml());
         $rootElement = $doc->requireDocumentElement();
 
         // Generate the "DigestValue" of the reference data.
@@ -140,8 +148,7 @@ final class SignatureGenerator implements SignatureGeneratorInterface
     ): string {
         // The digest will be made of a specific reference (ID) in the XML.
         if (!empty($reference)) {
-            $xpath = '//*[@ID="' . ltrim($reference, '#') . '"]';
-            $node = $doc->getNodes($xpath)->item(0);
+            $node = ReferenceTarget::find($doc, $reference);
             if (!$node instanceof DOMNode) {
                 throw new XmlException([
                     'No element with ID "{id}" was found in the XML document.',
@@ -161,11 +168,8 @@ final class SignatureGenerator implements SignatureGeneratorInterface
                     'Could not get the documentElement from the XML to sign (possible malformed XML).'
                 );
             }
-            $signatureElement = $docClone
-                ->getNodes("/*//*[local-name()='Signature']")
-                ->item(0)
-            ;
-            if ($signatureElement instanceof DOMNode) {
+            $signatureElement = SignatureElements::find($docClone)[0] ?? null;
+            if ($signatureElement !== null) {
                 $signatureElement->parentNode?->removeChild($signatureElement);
             }
             $dataToDigest = $docClone->C14N();

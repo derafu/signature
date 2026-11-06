@@ -210,6 +210,51 @@ final class Signature implements SignatureInterface
     /**
      * {@inheritDoc}
      */
+    public function getSignatureMethod(): ?string
+    {
+        return $this->getText(['Signature', 'SignedInfo', 'SignatureMethod', '@attributes', 'Algorithm']);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getReferences(): array
+    {
+        $references = $this->get(['Signature', 'SignedInfo', 'Reference']);
+        if (!is_array($references)) {
+            return [];
+        }
+
+        $result = [];
+        foreach (array_is_list($references) ? $references : [$references] as $reference) {
+            if (!is_array($reference)) {
+                continue;
+            }
+
+            $transforms = ArrayPath::get($reference, $this->resolvePath(['Transforms', 'Transform'], $reference));
+            $algorithms = [];
+            foreach (is_array($transforms) && array_is_list($transforms) ? $transforms : [$transforms] as $transform) {
+                $attributes = is_array($transform) ? ($transform['@attributes'] ?? null) : null;
+                $algorithm = is_array($attributes) ? ($attributes['Algorithm'] ?? null) : null;
+                if (is_string($algorithm)) {
+                    $algorithms[] = $algorithm;
+                }
+            }
+
+            $result[] = [
+                'uri' => $this->readText($reference, ['@attributes', 'URI']),
+                'digestMethod' => $this->readText($reference, ['DigestMethod', '@attributes', 'Algorithm']),
+                'digestValue' => $this->readText($reference, ['DigestValue']),
+                'transforms' => $algorithms,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function getDigestValue(): ?string
     {
         return $this->getText(['Signature', 'SignedInfo', 'Reference', 'DigestValue']);
@@ -220,12 +265,12 @@ final class Signature implements SignatureInterface
      */
     public function getX509Certificate(): ?string
     {
-        $x509 = $this->get(self::X509_CERTIFICATE_PATH);
+        $x509 = $this->unwrap($this->get(self::X509_CERTIFICATE_PATH));
 
         // With a trust chain there are several certificates: the first one is
         // the one of the signer.
         if (is_array($x509)) {
-            $x509 = $x509[0] ?? null;
+            $x509 = $this->unwrap($x509[0] ?? null);
         }
 
         return is_string($x509) && $x509 !== '' && $x509 !== '0' ? $x509 : null;
@@ -236,13 +281,16 @@ final class Signature implements SignatureInterface
      */
     public function getX509CertificateChain(): array
     {
-        $x509 = $this->get(self::X509_CERTIFICATE_PATH);
+        $x509 = $this->unwrap($this->get(self::X509_CERTIFICATE_PATH));
 
         if (!is_array($x509)) {
             return [];
         }
 
-        return array_values(array_filter(array_slice($x509, 1), is_string(...)));
+        return array_values(array_filter(
+            array_map($this->unwrap(...), array_slice($x509, 1)),
+            is_string(...)
+        ));
     }
 
     /**
@@ -466,7 +514,38 @@ final class Signature implements SignatureInterface
      */
     private function getText(array $path): ?string
     {
-        $value = $this->get($path);
+        return $this->asText($this->get($path));
+    }
+
+    /**
+     * Reads a text of a part of the data, with or without namespace prefix in
+     * the names of the elements.
+     *
+     * @param array<int|string, mixed> $data The part of the data.
+     * @param non-empty-list<string> $path The keys that lead to the value.
+     * @return string|null The text, or `null` if it is not there.
+     */
+    private function readText(array $data, array $path): ?string
+    {
+        return $this->asText(ArrayPath::get($data, $this->resolvePath($path, $data)));
+    }
+
+    /**
+     * Returns the text of an element that has attributes, which the decoder
+     * gives as `['@attributes' => ..., '@value' => text]`. Any other value is
+     * returned as it is.
+     */
+    private function unwrap(mixed $value): mixed
+    {
+        return is_array($value) && array_key_exists('@value', $value) ? $value['@value'] : $value;
+    }
+
+    /**
+     * Returns the value if it is a text that is not empty.
+     */
+    private function asText(mixed $value): ?string
+    {
+        $value = $this->unwrap($value);
 
         return is_string($value) && $value !== '' && $value !== '0' ? $value : null;
     }
@@ -569,12 +648,14 @@ final class Signature implements SignatureInterface
      *
      * @param non-empty-list<string> $path The names of the elements, as
      * `Signature` or `SignedInfo`, and the keys of the attributes.
+     * @param array<int|string, mixed>|null $base Data where the path is
+     * resolved, by default the data of the signature node.
      * @return non-empty-list<string> The keys of the data.
      */
-    private function resolvePath(array $path): array
+    private function resolvePath(array $path, ?array $base = null): array
     {
         $resolved = [];
-        $level = $this->data;
+        $level = $base ?? $this->data;
         $previous = null;
         foreach ($path as $name) {
             $key = $name;

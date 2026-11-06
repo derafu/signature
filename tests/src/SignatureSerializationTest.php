@@ -17,12 +17,15 @@ use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\Signature\Support\ReferenceTarget;
+use Derafu\Signature\Support\SignatureElements;
 use Derafu\TestsSignature\Support\ReadsFixtures;
 use Derafu\Xml\Service\XmlDecoder;
 use Derafu\Xml\Service\XmlEncoder;
 use Derafu\Xml\Service\XmlService;
 use Derafu\Xml\Service\XmlValidator;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Signature::class)]
@@ -30,6 +33,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureGenerator::class)]
 #[CoversClass(SignatureValidator::class)]
 #[CoversClass(SignatureValidationResult::class)]
+#[UsesClass(ReferenceTarget::class)]
+#[UsesClass(SignatureElements::class)]
 class SignatureSerializationTest extends TestCase
 {
     use ReadsFixtures;

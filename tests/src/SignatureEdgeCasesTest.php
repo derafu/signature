@@ -20,6 +20,8 @@ use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Service\SignatureGenerator;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
+use Derafu\Signature\Support\ReferenceTarget;
+use Derafu\Signature\Support\SignatureElements;
 use Derafu\Translation\Contract\TranslatableInterface;
 use Derafu\Xml\Exception\XmlException;
 use Derafu\Xml\Service\XmlDecoder;
@@ -29,6 +31,7 @@ use Derafu\Xml\Service\XmlValidator;
 use Derafu\Xml\XmlDocument;
 use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
@@ -41,6 +44,8 @@ use Throwable;
 #[CoversClass(SignatureValidator::class)]
 #[CoversClass(Signature::class)]
 #[CoversClass(SignatureException::class)]
+#[UsesClass(ReferenceTarget::class)]
+#[UsesClass(SignatureElements::class)]
 final class SignatureEdgeCasesTest extends TestCase
 {
     /**

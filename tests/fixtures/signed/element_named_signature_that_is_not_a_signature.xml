@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns:cac="urn:example:components">
+  <cac:Signature>
+    <cac:ID>urn:example:signature</cac:ID>
+    <cac:SignatoryParty>
+      <cac:PartyName>Example</cac:PartyName>
+    </cac:SignatoryParty>
+  </cac:Signature>
+</Invoice>

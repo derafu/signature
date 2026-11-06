@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Root>
+  <Doc ID="A">
+    <V>1</V>
+  </Doc>
+  <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+    <SignatureValue>VALUE</SignatureValue>
+  </Signature>
+</Root>

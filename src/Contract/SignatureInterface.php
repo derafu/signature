@@ -101,6 +101,27 @@ interface SignatureInterface extends JsonSerializable
     public function getReference(): ?string;
 
     /**
+     * Returns the algorithm of the signature of the `SignedInfo` node.
+     *
+     * @return string|null The URI of the algorithm (the `Algorithm` of
+     * `SignatureMethod`), or `null` if it is not defined.
+     */
+    #[NoDiscard()]
+    public function getSignatureMethod(): ?string;
+
+    /**
+     * Returns the references of the `SignedInfo` node: the data that the
+     * signature covers.
+     *
+     * @return list<array{uri: string|null, digestMethod: string|null, digestValue: string|null, transforms: list<string>}>
+     * For each `Reference`: its URI (`null` if empty, the whole document), the
+     * algorithm of its digest, its `DigestValue` and the algorithms of its
+     * transforms, in order.
+     */
+    #[NoDiscard()]
+    public function getReferences(): array;
+
+    /**
      * Returns the DigestValue of the `Reference` node.
      *
      * @return string|null The DigestValue, or `null` if it is not defined.

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Envelope xmlns="urn:example:documents" version="1.0">
+<Set ID="Set">
+<Header version="1.0"><Sender>76192083-9</Sender></Header>
+<Document xmlns="urn:example:documents" version="1.0">
+  <Data ID="D1">
+    <Description>Óptica Ñuñoa 1</Description>
+  </Data>
+  <Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><Reference URI="#D1"><Transforms><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><DigestValue>+0MYteq/itB8Rv8K6zXU+/q1nDk=</DigestValue></Reference></SignedInfo><SignatureValue>zgn6Sah7mlObHseJP6Goh77t9K5GtMJ1rCNDV9KDEwxF6O0QZWoLnyBe+0c3ZJlD
+exD4KVWYNnPANc428JPUgPoCTY6zo9rE9BUiA+rqljsIJzwHyieqkKciFvbkgoSo
+/jmAukkcSAT8MIZAJnBzqaOlPHyGzNefIdhC6dvtSUFFHi31V5ezDLXBYCH6TPxl
+HTm9WIQUdangjzl3fkXGQrC83iWG6dRc7JAKlaWv7C9YqGSSqI66HPN8VVGc9RNT
+WgHT/F1YK1/wY1vHB4QZgXoGiTpuGjx3gZFSXunQFOu6schJRblNMpxCLb9iFBGl
+1BUPMpi7OQSn4ek8GNUkQg==</SignatureValue><KeyInfo><KeyName>key</KeyName><KeyValue/><X509Data>
+<X509Certificate>
+MIIEcTCCA1mgAwIBAgIBRTANBgkqhkiG9w0BAQUFADCByzELMAkGA1UEBhMCQ0wx
+EjAQBgNVBAgMCUNvbGNoYWd1YTETMBEGA1UEBwwKU2FudGEgQ3J1ejEPMA0GA1UE
+CgwGRGVyYWZ1MRMwEQYDVQQLDApUZWNobm9sb2d5MSowKAYDVQQDDCFEZXJhZnUg
+VGVzdCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkxLDAqBgkqhkiG9w0BCQEWHWZha2Vz
+LWNlcnRpZmljYXRlc0BkZXJhZnUub3JnMRMwEQYDVQQFEwo3NjE5MjA4My05MB4X
+DTI2MTEwNjExMjY0N1oXDTI3MTEwNjExMjY0N1owgdYxCzAJBgNVBAYTAkNMMRIw
+EAYDVQQIDAlDb2xjaGFndWExEzARBgNVBAcMClNhbnRhIENydXoxKjAoBgNVBAoM
+IUludGVyZ2FsYWN0aWMgUm9ib3RzIE9yZ2FuaXphdGlvbjETMBEGA1UECwwKVGVj
+aG5vbG9neTETMBEGA1UEAwwKRGFuaWVsIEJvdDElMCMGCSqGSIb3DQEJARYWZGFu
+aWVsLmJvdEBleGFtcGxlLmNvbTETMBEGA1UEBRMKMTExMTExMTEtMTEMMAoGA1UE
+DAwDQm90MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1xghBkyc0RH7
+L3/U7P326zZxkavNm5oybQ9dJlvRMwnG7MQJ3hR1BoilEDfBGl7ObZbBMR0Y1a1a
+aHMUQKGgxueKEHPo5rx4gucWnZNRaQK9wcCR4uRkVX31F2PRhGRNiA5EVR4DzlIv
+r3WVlPR5paYsbdef2JBQqOEsg4LBB7W4sqC2H/O2UQELJ4WlPqLk96f+jJKB1XZN
+SFx4r6j2EfoOttqnuGXMh/XAdBpaoyVkFSITRHOybJXBSoB+hJzKm/yzMZk0a8YT
+4Xy2Z6dGK8EYrGEjD08mEW8DUEg8HQ2JE6qgsvAVHppTfam5OFXQg90w8QXVC5qE
+/aY6s3UXawIDAQABo1MwUTAdBgNVHQ4EFgQUNvtEykt3zElUG26iBn5pT1MQzHow
+HwYDVR0jBBgwFoAU4dxR+Ao0JRwQ+RyLJwBo5bGvo3QwDwYDVR0TAQH/BAUwAwEB
+/zANBgkqhkiG9w0BAQUFAAOCAQEAtdxHQiyaidRFCCuBkZB3EfIK+5w5kyC6USTy
+yF9gccgBKRbQt+xipPVe8sHIrv/wzz2dFlUyjPlnb3fYOwbT07abdTiJzuExjJZ6
+Y0WPbcCikMPuDrR1cLHooWWzPtVIZrirce4m0Camn93tB/ueCWN4GNPjhpxub4aR
+50gVzGLLuu2ArJNSkKT5gyMh8O29bSh9II1laZaDVHd+FicL7CFISPDIBtZGiLjg
+AcB7+HbBQgdkQQ+CQfy+bHueVe7SbCb8jUOMv8dLK4UKj2KzidMuQ0Ki3I9O+IXB
+5WEIRtTYe8bqkc/gSESqz0/tYiEryY0t+SitGTVmx7DDv4nzRA==
+</X509Certificate>
+</X509Data></KeyInfo></Signature>
+</Document>
+<Document xmlns="urn:example:documents" version="1.0">
+  <Data ID="D2">
+    <Description>Óptica Ñuñoa 2</Description>
+  </Data>
+  <Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><Reference URI="#D2"><Transforms><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><DigestValue>Lc7/W6YJNumTbApAgsE7b/XlJa0=</DigestValue></Reference></SignedInfo><SignatureValue>RI54Z12aCKyT//BnuqziZ7jdvcbZh0zQkgaXH1NImlW5GPl4tGPEEOJnWdP8rVO5
+Vdwmxba1YqrgTAiU4oWYp8spa/DgsGH2itfBRo3zj8Or1oi+NGFIJitJQ35pN916
+AwFBKw8LAWyHysdupnM0ZyvUSleiJBGkOB9CXcYv4paEoa1lCWZ1JjDoAnrnNZX0
+fspjAZNc2d4vmB+lBBIxphXuXCLfHW2fC2uP+lWtqL41XYX90wgXHAglJ+lOKAvm
+7QqMQ8yVYnG3Xc6fll3u8+GnorRi0VaF8xvX6L46eF0XpM/QICHAHMoQKbvCeqnz
+52cbkIaBvFB+OMRYUwI9Pw==</SignatureValue><KeyInfo><KeyName>key</KeyName><KeyValue/><X509Data>
+<X509Certificate>
+MIIEcTCCA1mgAwIBAgIBRTANBgkqhkiG9w0BAQUFADCByzELMAkGA1UEBhMCQ0wx
+EjAQBgNVBAgMCUNvbGNoYWd1YTETMBEGA1UEBwwKU2FudGEgQ3J1ejEPMA0GA1UE
+CgwGRGVyYWZ1MRMwEQYDVQQLDApUZWNobm9sb2d5MSowKAYDVQQDDCFEZXJhZnUg
+VGVzdCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkxLDAqBgkqhkiG9w0BCQEWHWZha2Vz
+LWNlcnRpZmljYXRlc0BkZXJhZnUub3JnMRMwEQYDVQQFEwo3NjE5MjA4My05MB4X
+DTI2MTEwNjExMjY0N1oXDTI3MTEwNjExMjY0N1owgdYxCzAJBgNVBAYTAkNMMRIw
+EAYDVQQIDAlDb2xjaGFndWExEzARBgNVBAcMClNhbnRhIENydXoxKjAoBgNVBAoM
+IUludGVyZ2FsYWN0aWMgUm9ib3RzIE9yZ2FuaXphdGlvbjETMBEGA1UECwwKVGVj
+aG5vbG9neTETMBEGA1UEAwwKRGFuaWVsIEJvdDElMCMGCSqGSIb3DQEJARYWZGFu
+aWVsLmJvdEBleGFtcGxlLmNvbTETMBEGA1UEBRMKMTExMTExMTEtMTEMMAoGA1UE
+DAwDQm90MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1xghBkyc0RH7
+L3/U7P326zZxkavNm5oybQ9dJlvRMwnG7MQJ3hR1BoilEDfBGl7ObZbBMR0Y1a1a
+aHMUQKGgxueKEHPo5rx4gucWnZNRaQK9wcCR4uRkVX31F2PRhGRNiA5EVR4DzlIv
+r3WVlPR5paYsbdef2JBQqOEsg4LBB7W4sqC2H/O2UQELJ4WlPqLk96f+jJKB1XZN
+SFx4r6j2EfoOttqnuGXMh/XAdBpaoyVkFSITRHOybJXBSoB+hJzKm/yzMZk0a8YT
+4Xy2Z6dGK8EYrGEjD08mEW8DUEg8HQ2JE6qgsvAVHppTfam5OFXQg90w8QXVC5qE
+/aY6s3UXawIDAQABo1MwUTAdBgNVHQ4EFgQUNvtEykt3zElUG26iBn5pT1MQzHow
+HwYDVR0jBBgwFoAU4dxR+Ao0JRwQ+RyLJwBo5bGvo3QwDwYDVR0TAQH/BAUwAwEB
+/zANBgkqhkiG9w0BAQUFAAOCAQEAtdxHQiyaidRFCCuBkZB3EfIK+5w5kyC6USTy
+yF9gccgBKRbQt+xipPVe8sHIrv/wzz2dFlUyjPlnb3fYOwbT07abdTiJzuExjJZ6
+Y0WPbcCikMPuDrR1cLHooWWzPtVIZrirce4m0Camn93tB/ueCWN4GNPjhpxub4aR
+50gVzGLLuu2ArJNSkKT5gyMh8O29bSh9II1laZaDVHd+FicL7CFISPDIBtZGiLjg
+AcB7+HbBQgdkQQ+CQfy+bHueVe7SbCb8jUOMv8dLK4UKj2KzidMuQ0Ki3I9O+IXB
+5WEIRtTYe8bqkc/gSESqz0/tYiEryY0t+SitGTVmx7DDv4nzRA==
+</X509Certificate>
+</X509Data></KeyInfo></Signature>
+</Document>
+</Set>
+<Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/><Reference URI="#Set"><Transforms><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><DigestValue>eaLEJJw4Jij+iPTzJQMhJDPSwzk=</DigestValue></Reference></SignedInfo><SignatureValue>E1goTukTpXl67io9KjFMq1krTckJVyRY2uYI3M1JrNkA39Qf9e6+aXkuyBY70h25
+pVGyQnWvOyXaSbiCQXUhbriQ8qQTYGyqAZROD0XvaCRCJkkUI1a1HcIflhR86NZm
+4s/vMb6ZHLE1RO+T67gdYVeaRKbFMAOTNzIHNxucCs1oChppY8ifzcv69rbyDh3b
+2oiSw2ZDTL5Yr/ofpPnNzGePtsyQBHjMCDBCX2MW2LZQ8CvtOVxbC+M1d46JaXp0
+oiIpU8yW/lZsWQXs4CzUAfrZM1m7F1Mi3Xr09mMCAOQvxEuszVADL+knX+NnEv2+
+Zz1d9niTy7JpWdDQ3TS17w==</SignatureValue><KeyInfo><KeyName>key</KeyName><KeyValue/><X509Data>
+<X509Certificate>
+MIIEcTCCA1mgAwIBAgIBRTANBgkqhkiG9w0BAQUFADCByzELMAkGA1UEBhMCQ0wx
+EjAQBgNVBAgMCUNvbGNoYWd1YTETMBEGA1UEBwwKU2FudGEgQ3J1ejEPMA0GA1UE
+CgwGRGVyYWZ1MRMwEQYDVQQLDApUZWNobm9sb2d5MSowKAYDVQQDDCFEZXJhZnUg
+VGVzdCBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkxLDAqBgkqhkiG9w0BCQEWHWZha2Vz
+LWNlcnRpZmljYXRlc0BkZXJhZnUub3JnMRMwEQYDVQQFEwo3NjE5MjA4My05MB4X
+DTI2MTEwNjExMjY0N1oXDTI3MTEwNjExMjY0N1owgdYxCzAJBgNVBAYTAkNMMRIw
+EAYDVQQIDAlDb2xjaGFndWExEzARBgNVBAcMClNhbnRhIENydXoxKjAoBgNVBAoM
+IUludGVyZ2FsYWN0aWMgUm9ib3RzIE9yZ2FuaXphdGlvbjETMBEGA1UECwwKVGVj
+aG5vbG9neTETMBEGA1UEAwwKRGFuaWVsIEJvdDElMCMGCSqGSIb3DQEJARYWZGFu
+aWVsLmJvdEBleGFtcGxlLmNvbTETMBEGA1UEBRMKMTExMTExMTEtMTEMMAoGA1UE
+DAwDQm90MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1xghBkyc0RH7
+L3/U7P326zZxkavNm5oybQ9dJlvRMwnG7MQJ3hR1BoilEDfBGl7ObZbBMR0Y1a1a
+aHMUQKGgxueKEHPo5rx4gucWnZNRaQK9wcCR4uRkVX31F2PRhGRNiA5EVR4DzlIv
+r3WVlPR5paYsbdef2JBQqOEsg4LBB7W4sqC2H/O2UQELJ4WlPqLk96f+jJKB1XZN
+SFx4r6j2EfoOttqnuGXMh/XAdBpaoyVkFSITRHOybJXBSoB+hJzKm/yzMZk0a8YT
+4Xy2Z6dGK8EYrGEjD08mEW8DUEg8HQ2JE6qgsvAVHppTfam5OFXQg90w8QXVC5qE
+/aY6s3UXawIDAQABo1MwUTAdBgNVHQ4EFgQUNvtEykt3zElUG26iBn5pT1MQzHow
+HwYDVR0jBBgwFoAU4dxR+Ao0JRwQ+RyLJwBo5bGvo3QwDwYDVR0TAQH/BAUwAwEB
+/zANBgkqhkiG9w0BAQUFAAOCAQEAtdxHQiyaidRFCCuBkZB3EfIK+5w5kyC6USTy
+yF9gccgBKRbQt+xipPVe8sHIrv/wzz2dFlUyjPlnb3fYOwbT07abdTiJzuExjJZ6
+Y0WPbcCikMPuDrR1cLHooWWzPtVIZrirce4m0Camn93tB/ueCWN4GNPjhpxub4aR
+50gVzGLLuu2ArJNSkKT5gyMh8O29bSh9II1laZaDVHd+FicL7CFISPDIBtZGiLjg
+AcB7+HbBQgdkQQ+CQfy+bHueVe7SbCb8jUOMv8dLK4UKj2KzidMuQ0Ki3I9O+IXB
+5WEIRtTYe8bqkc/gSESqz0/tYiEryY0t+SitGTVmx7DDv4nzRA==
+</X509Certificate>
+</X509Data></KeyInfo></Signature>
+</Envelope>

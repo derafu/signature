@@ -34,6 +34,10 @@ return [
         'No se encontraron firmas para validar en el XML.',
     'The DigestValue that comes in the XML "{xml}" for the reference "{reference}" does not match the calculated value when validating "{calculated}". The data of the reference could have been manipulated after being signed.' =>
         'El DigestValue que viene en el XML "{xml}" para la referencia "{reference}" no coincide con el valor calculado al validar "{calculated}". Los datos de la referencia pudieron ser manipulados después de ser firmados.',
+    'The digest algorithm "{algorithm}" of the signature is not supported.' =>
+        'El algoritmo de digest "{algorithm}" de la firma no está soportado.',
+    'The signature element with the transforms of the reference was not found in the XML to validate.' =>
+        'No se encontró en el XML a validar el elemento de la firma con las transformaciones de la referencia.',
     'The DigestValue is missing from the signature node.' =>
         'Falta el DigestValue en el nodo de la firma.',
     'The SignatureValue is missing from the signature node.' =>

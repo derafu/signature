@@ -20,6 +20,8 @@ use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\Signature\Support\ReferenceTarget;
+use Derafu\Signature\Support\SignatureElements;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException;
 use Derafu\Xml\Service\XmlDecoder;
 use Derafu\Xml\Service\XmlEncoder;
@@ -31,6 +33,7 @@ use DOMElement;
 use DOMXPath;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -42,6 +45,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureGenerator::class)]
 #[CoversClass(SignatureValidator::class)]
 #[CoversClass(SignatureValidationResult::class)]
+#[UsesClass(ReferenceTarget::class)]
+#[UsesClass(SignatureElements::class)]
 final class SignatureNamespacePrefixTest extends TestCase
 {
     private const DSIG = 'http://www.w3.org/2000/09/xmldsig#';

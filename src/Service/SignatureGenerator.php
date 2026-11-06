@@ -81,7 +81,8 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         CertificateInterface $certificate,
         ?string $reference = null,
         ?string $signatureNamespace = null,
-        bool $includeCertificateChain = false
+        bool $includeCertificateChain = false,
+        ?string $signaturePrefix = null
     ): string {
         // If an Xml object is passed, it is converted to a string. This is
         // necessary to keep the "pretty" format if it was passed and to be able
@@ -104,21 +105,27 @@ final class SignatureGenerator implements SignatureGeneratorInterface
             digestValue: $digestValue,
             certificate: $certificate,
             signatureNamespace: $signatureNamespace,
-            includeCertificateChain: $includeCertificateChain
+            includeCertificateChain: $includeCertificateChain,
+            signaturePrefix: $signaturePrefix
         );
+
+        // Add the placeholder of the signature in the root node, where the XML
+        // signature goes.
+        $signatureElement = $doc->getDomDocument()->createElement('Signature', '');
+        $rootElement->appendChild($signatureElement);
+        $xmlTemplate = $doc->saveXml();
 
         // Sign the document by calculating the value of the signature of the
         // `Signature` node.
         $signatureNode = $this->signSignature(
             $signatureNode,
-            $certificate
+            $certificate,
+            $xmlTemplate
         );
         $xmlSignature = $signatureNode->getXml()->getXml();
 
         // Add the XML signature in the Signature node.
-        $signatureElement = $doc->getDomDocument()->createElement('Signature', '');
-        $rootElement->appendChild($signatureElement);
-        $xmlSigned = str_replace('<Signature/>', $xmlSignature, $doc->saveXml());
+        $xmlSigned = str_replace('<Signature/>', $xmlSignature, $xmlTemplate);
 
         // Return the string XML of the signed XML document.
         return $xmlSigned;
@@ -154,12 +161,12 @@ final class SignatureGenerator implements SignatureGeneratorInterface
                     'Could not get the documentElement from the XML to sign (possible malformed XML).'
                 );
             }
-            $signatureElement = $rootElement
-                ->getElementsByTagName('Signature')
+            $signatureElement = $docClone
+                ->getNodes("/*//*[local-name()='Signature']")
                 ->item(0)
             ;
-            if ($signatureElement) {
-                $rootElement->removeChild($signatureElement);
+            if ($signatureElement instanceof DOMNode) {
+                $signatureElement->parentNode?->removeChild($signatureElement);
             }
             $dataToDigest = $docClone->C14N();
         }
@@ -178,12 +185,17 @@ final class SignatureGenerator implements SignatureGeneratorInterface
      *
      * @param SignatureInterface $signatureNode The signature node that will be signed.
      * @param CertificateInterface $certificate Digital certificate to use for signing.
+     * @param string $xmlTemplate XML of the document with the `<Signature/>`
+     * placeholder where the signature node will be placed. The `SignedInfo` is
+     * canonicalized as it will be in that document, with the namespaces that
+     * it inherits, which is how it is verified.
      * @return SignatureInterface The signed signature node.
      * @throws LogicException If the conditions to sign are not met.
      */
     private function signSignature(
         SignatureInterface $signatureNode,
-        CertificateInterface $certificate
+        CertificateInterface $certificate,
+        string $xmlTemplate
     ): SignatureInterface {
         // Validate that the digital certificate is assigned.
         if ($signatureNode->getX509Certificate() === null) {
@@ -200,8 +212,19 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // Generate the string XML of the data that will be signed.
         // SignedInfo is always present because $nodeXml is freshly built from
         // the Signature::$data template, which always declares it.
-        $xpath = "//*[local-name()='Signature']/*[local-name()='SignedInfo']";
-        $signedInfoNode = $nodeXml->getNodes($xpath)->item(0);
+        // The signature node is placed in the XML as it will be in the signed
+        // document, so the C14N of `SignedInfo` has the namespaces that it
+        // inherits from the elements that contain it. It is done with the text
+        // of the XML, as the final document is built, since importing the
+        // nodes could change the prefixes of its elements. The new signature is
+        // the last one, the document could have others.
+        $contextDoc = new XmlDocument();
+        $contextDoc->loadXml(
+            str_replace('<Signature/>', $nodeXml->getXml(), $xmlTemplate)
+        );
+        $signedInfoNode = $contextDoc->getNodes(
+            "(/*/*[local-name()='Signature'])[last()]/*[local-name()='SignedInfo']"
+        )->item(0);
         $signedInfoNode instanceof DOMNode || throw new LogicException('SignedInfo node is missing from the generated Signature XML.');
         $signedInfoC14N = XmlHelper::canonicalize($signedInfoNode);
 

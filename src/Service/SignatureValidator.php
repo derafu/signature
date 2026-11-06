@@ -26,6 +26,9 @@ use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Contract\XmlServiceInterface;
 use Derafu\Xml\XmlDocument;
 use Derafu\Xml\XmlHelper;
+use DOMDocument;
+use DOMElement;
+use DOMNameSpaceNode;
 use DOMNode;
 
 /**
@@ -95,8 +98,10 @@ final class SignatureValidator implements SignatureValidatorInterface
 
         // Search for all elements that are tag Signature.
         // An XML document can have more than one signature.
-        $signaturesElements = $rootElement->getElementsByTagName(
-            'Signature'
+        // The element is searched by its local name, so it is found with any
+        // namespace prefix (`Signature`, `ds:Signature`, ...).
+        $signaturesElements = $doc->getNodes(
+            "/*//*[local-name()='Signature']"
         );
 
         // If no signatures are found in the XML, an error is thrown.
@@ -110,20 +115,38 @@ final class SignatureValidator implements SignatureValidatorInterface
         // fails, the error is captured in the result instead of throwing, so
         // callers can always inspect the signer's certificate data.
         $results = [];
-        foreach ($signaturesElements as $signatureElement) {
-            $signatureNode = $this->createSignatureNode(
-                XmlHelper::canonicalize($signatureElement)
-            );
+        $elements = array_filter(
+            iterator_to_array($signaturesElements),
+            static fn (DOMNode|DOMNameSpaceNode $node): bool => $node instanceof DOMNode
+        );
+        foreach ($elements as $signatureElement) {
+            $result = null;
+            $candidates = [
+                XmlHelper::canonicalize($signatureElement),
+                ...$this->canonicalizeWithinAncestors($signatureElement),
+            ];
+            foreach ($candidates as $candidate) {
+                $signatureNode = $this->createSignatureNode($candidate);
 
-            $error = null;
-            try {
-                $this->validateXmlDigestValue($doc, $signatureNode);
-                $this->validateXmlSignatureValue($signatureNode);
-            } catch (SignatureException $e) {
-                $error = $e;
+                $error = null;
+                try {
+                    $this->validateXmlDigestValue($doc, $signatureNode);
+                    $this->validateXmlSignatureValue($signatureNode);
+                } catch (SignatureException $e) {
+                    $error = $e;
+                }
+
+                // The first one is the signature as it is in the document, and
+                // the one that is reported if none of them is valid.
+                $current = new SignatureValidationResult($signatureNode, $error);
+                $result ??= $current;
+                if ($error === null) {
+                    $result = $current;
+                    break;
+                }
             }
 
-            $results[] = new SignatureValidationResult($signatureNode, $error);
+            $results[] = $result;
         }
 
         return $results;
@@ -246,7 +269,52 @@ final class SignatureValidator implements SignatureValidatorInterface
             }
         }
 
+        // Try the element as it was in the smaller document where it could have
+        // been signed: an element signed in its own document and embedded later
+        // in a larger one (like a certificate inside an envelope) inherits the
+        // namespaces of the new ancestors, which were not there when signing.
+        foreach ($this->canonicalizeWithinAncestors($node) as $c14n) {
+            $hash = base64_encode(sha1($c14n, true));
+            if ($hash === $expected) {
+                return $hash;
+            }
+        }
+
         return null;
+    }
+
+    /**
+     * Canonicalizes an element as if the document where it is were rooted in
+     * each one of its ancestors, from the nearest one up to the child of the
+     * root: only the namespaces declared down from that ancestor are in scope.
+     *
+     * @return list<string> The C14N of the element, one per ancestor.
+     */
+    private function canonicalizeWithinAncestors(DOMNode $node): array
+    {
+        $ancestors = [];
+        for ($parent = $node->parentNode; $parent instanceof DOMElement; $parent = $parent->parentNode) {
+            $ancestors[] = $parent;
+        }
+        // The last one is the root of the document: with it the result is the
+        // C14N of the element in its own document, that was already tried.
+        array_pop($ancestors);
+
+        $results = [];
+        foreach (array_keys($ancestors) as $depth) {
+            $doc = new DOMDocument();
+            $parent = $doc;
+            for ($i = $depth; $i >= 0; $i--) {
+                $copy = $doc->importNode($ancestors[$i], false);
+                $parent->appendChild($copy);
+                $parent = $copy;
+            }
+            $copy = $doc->importNode($node, true);
+            $parent->appendChild($copy);
+            $results[] = XmlHelper::canonicalize($copy);
+        }
+
+        return $results;
     }
 
     /**
@@ -297,6 +365,22 @@ final class SignatureValidator implements SignatureValidatorInterface
             );
         }
 
+        // If it still fails, try the `SignedInfo` without the namespace
+        // declarations of its first tag. Some signing systems, like the one
+        // that signed the books of the SII certification, sign it as a
+        // fragment that does not declare the prefix of its elements (the
+        // `ds:` of `<ds:SignedInfo>`), and the SII accepts those signatures.
+        if (!$isValid && $signedInfoNode instanceof DOMNode) {
+            $signedInfoC14N = $this->removeNamespaceDeclarations(
+                XmlHelper::canonicalize($signedInfoNode)
+            );
+            $isValid = $this->validate(
+                $signedInfoC14N,
+                $signatureValue,
+                $x509Certificate
+            );
+        }
+
         // If the electronic signature is not valid, an exception is thrown.
         if (!$isValid) {
             throw new SignatureException([
@@ -304,5 +388,22 @@ final class SignatureValidator implements SignatureValidatorInterface
                 'reference' => $signatureNode->getReference(),
             ]);
         }
+    }
+
+    /**
+     * Removes the namespace declarations of the first tag of a canonicalized
+     * element.
+     *
+     * @param string $c14n Canonicalized XML of an element.
+     * @return string The XML without the `xmlns` and `xmlns:prefix`
+     * declarations of the first tag.
+     */
+    private function removeNamespaceDeclarations(string $c14n): string
+    {
+        return (string) preg_replace(
+            '/^(<[^\s>\/]+)(?:\s+xmlns(?::[^\s=]+)?="[^"]*")+/',
+            '$1',
+            $c14n
+        );
     }
 }

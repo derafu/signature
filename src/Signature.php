@@ -18,6 +18,7 @@ use Derafu\Certificate\Contract\CertificateInterface;
 use Derafu\Certificate\Exception\CertificateException;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Translation\Exception\Core\TranslatableLogicException as LogicException;
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 
 /**
@@ -32,6 +33,11 @@ final class Signature implements SignatureInterface
      * @var XmlDocumentInterface
      */
     private XmlDocumentInterface $xml;
+
+    /**
+     * Namespace of the elements of the XML signature.
+     */
+    private const string NAMESPACE = 'http://www.w3.org/2000/09/xmldsig#';
 
     /**
      * Path in the data to the certificate (or the list of certificates, when
@@ -54,7 +60,7 @@ final class Signature implements SignatureInterface
         // This is the node that will be included in the signed XML.
         'Signature' => [
             '@attributes' => [
-                'xmlns' => 'http://www.w3.org/2000/09/xmldsig#',
+                'xmlns' => self::NAMESPACE,
             ],
             // Data that will be signed. The most important tag here is the
             // "DigestValue" that contains a "summary" (digest) of the C14N of
@@ -145,8 +151,13 @@ final class Signature implements SignatureInterface
         CertificateInterface $certificate,
         ?string $reference = null,
         ?string $signatureNamespace = null,
-        bool $includeCertificateChain = false
+        bool $includeCertificateChain = false,
+        ?string $signaturePrefix = null
     ): static {
+        if ($signaturePrefix !== null) {
+            $this->setSignaturePrefix($signaturePrefix);
+        }
+
         $instance = $this
             ->setReference($reference)
             ->setDigestValue($digestValue)
@@ -209,7 +220,7 @@ final class Signature implements SignatureInterface
      */
     public function getX509Certificate(): ?string
     {
-        $x509 = ArrayPath::get($this->data, self::X509_CERTIFICATE_PATH);
+        $x509 = $this->get(self::X509_CERTIFICATE_PATH);
 
         // With a trust chain there are several certificates: the first one is
         // the one of the signer.
@@ -225,7 +236,7 @@ final class Signature implements SignatureInterface
      */
     public function getX509CertificateChain(): array
     {
-        $x509 = ArrayPath::get($this->data, self::X509_CERTIFICATE_PATH);
+        $x509 = $this->get(self::X509_CERTIFICATE_PATH);
 
         if (!is_array($x509)) {
             return [];
@@ -240,8 +251,7 @@ final class Signature implements SignatureInterface
     public function setSignatureValue(string $signatureValue): static
     {
         // Assign the electronic signature of the `SignedInfo` node.
-        $this->data = ArrayPath::set(
-            $this->data,
+        $this->put(
             ['Signature', 'SignatureValue'],
             wordwrap($signatureValue, 64, "\n", true)
         );
@@ -275,7 +285,11 @@ final class Signature implements SignatureInterface
      */
     private function setSignatureNamespace(string $namespace): static
     {
-        $this->data = ArrayPath::set($this->data, ['Signature', '@attributes', 'xmlns'], $namespace);
+        $prefix = $this->getSignaturePrefix();
+        $this->put(
+            ['Signature', '@attributes', $prefix === null ? 'xmlns' : 'xmlns:' . $prefix],
+            $namespace
+        );
 
         $this->invalidateXml();
 
@@ -293,11 +307,10 @@ final class Signature implements SignatureInterface
     {
         // Assign the URI reference (or empty if the entire XML is signed).
         $uri = $reference ? ('#' . ltrim($reference, '#')) : '';
-        $this->data = ArrayPath::set($this->data, ['Signature', 'SignedInfo', 'Reference', '@attributes', 'URI'], $uri);
+        $this->put(['Signature', 'SignedInfo', 'Reference', '@attributes', 'URI'], $uri);
 
         // Assign the transformation algorithm when obtaining the C14N.
-        $this->data = ArrayPath::set(
-            $this->data,
+        $this->put(
             ['Signature', 'SignedInfo', 'Reference', 'Transforms', 'Transform', '@attributes', 'Algorithm'],
             $reference
                 ? 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315'
@@ -320,7 +333,7 @@ final class Signature implements SignatureInterface
     private function setDigestValue(string $digestValue): static
     {
         // Assign the digest value.
-        $this->data = ArrayPath::set($this->data, ['Signature', 'SignedInfo', 'Reference', 'DigestValue'], $digestValue);
+        $this->put(['Signature', 'SignedInfo', 'Reference', 'DigestValue'], $digestValue);
 
         // Invalidate the XML of the signature node.
         $this->invalidateXml();
@@ -346,13 +359,11 @@ final class Signature implements SignatureInterface
     ): static {
         // Add module and exponent, which allow others to validate the XML
         // signature.
-        $this->data = ArrayPath::set(
-            $this->data,
+        $this->put(
             ['Signature', 'KeyInfo', 'KeyValue', 'RSAKeyValue', 'Modulus'],
             $certificate->getModulus()
         );
-        $this->data = ArrayPath::set(
-            $this->data,
+        $this->put(
             ['Signature', 'KeyInfo', 'KeyValue', 'RSAKeyValue', 'Exponent'],
             $certificate->getExponent()
         );
@@ -370,8 +381,7 @@ final class Signature implements SignatureInterface
                 ...$certificate->getCertificateChain(true)
             );
         }
-        $this->data = ArrayPath::set(
-            $this->data,
+        $this->put(
             self::X509_CERTIFICATE_PATH,
             count($x509Certificates) > 1 ? $x509Certificates : $x509Certificates[0]
         );
@@ -456,9 +466,160 @@ final class Signature implements SignatureInterface
      */
     private function getText(array $path): ?string
     {
-        $value = ArrayPath::get($this->data, $path);
+        $value = $this->get($path);
 
         return is_string($value) && $value !== '' && $value !== '0' ? $value : null;
+    }
+
+    /**
+     * Returns the prefix of the namespace with which the elements of the
+     * signature are named in the data (the `ds` of `ds:Signature`).
+     *
+     * @return string|null The prefix, or `null` if the elements have no prefix.
+     */
+    private function getSignaturePrefix(): ?string
+    {
+        $root = array_key_first($this->data);
+        if (!is_string($root) || !str_contains($root, ':')) {
+            return null;
+        }
+
+        return explode(':', $root, 2)[0];
+    }
+
+    /**
+     * Names the elements of the signature with a namespace prefix (`ds:Signature`,
+     * `ds:SignedInfo`, ...) and declares that prefix in the `Signature` element
+     * in place of the default namespace.
+     *
+     * The data is rebuilt from its current names, so any previous prefix is
+     * replaced.
+     *
+     * @param string $prefix The prefix, without the colon.
+     * @return void
+     * @throws InvalidArgumentException If the prefix is not valid.
+     */
+    private function setSignaturePrefix(string $prefix): void
+    {
+        if (preg_match('/^[A-Za-z_][A-Za-z0-9_.-]*$/', $prefix) !== 1
+            || in_array(strtolower($prefix), ['xml', 'xmlns'], true)
+        ) {
+            throw new InvalidArgumentException([
+                'The namespace prefix "{prefix}" of the signature is not valid.',
+                'prefix' => $prefix,
+            ]);
+        }
+
+        $current = $this->getSignaturePrefix();
+        $data = $this->renameElements($this->data, $prefix);
+        $root = array_key_first($data);
+        $element = $root !== null ? $data[$root] : null;
+        if (is_string($root) && is_array($element)) {
+            $declaration = $current === null ? 'xmlns' : 'xmlns:' . $current;
+            $attributes = is_array($element['@attributes'] ?? null) ? $element['@attributes'] : [];
+            $namespace = $attributes[$declaration] ?? self::NAMESPACE;
+            unset($attributes[$declaration]);
+            $element['@attributes'] = ['xmlns:' . $prefix => $namespace] + $attributes;
+            $data[$root] = $element;
+        }
+        $this->data = $data;
+
+        $this->invalidateXml();
+    }
+
+    /**
+     * Gives the elements of the data the same prefix, or removes it.
+     *
+     * @param array<int|string, mixed> $data Data of an element.
+     * @param string $prefix The prefix that the elements will have.
+     * @return array<int|string, mixed>
+     */
+    private function renameElements(array $data, string $prefix): array
+    {
+        $renamed = [];
+        foreach ($data as $key => $value) {
+            if (is_string($key) && $key !== '@attributes') {
+                $key = $prefix . ':' . $this->localName($key);
+            }
+            $renamed[$key] = is_array($value) && $key !== '@attributes'
+                ? $this->renameElements($value, $prefix)
+                : $value;
+        }
+
+        return $renamed;
+    }
+
+    /**
+     * Returns the name of an element without its namespace prefix.
+     */
+    private function localName(string $name): string
+    {
+        $position = strrpos($name, ':');
+
+        return $position === false ? $name : substr($name, $position + 1);
+    }
+
+    /**
+     * Resolves a path of the data to the keys that really exist in it.
+     *
+     * The names of the elements are searched without their namespace prefix,
+     * since `Signature` and `ds:Signature` are the same element of the XML
+     * signature. A name that is not found is kept as it is, so that setting a
+     * value creates it with the requested name.
+     *
+     * @param non-empty-list<string> $path The names of the elements, as
+     * `Signature` or `SignedInfo`, and the keys of the attributes.
+     * @return non-empty-list<string> The keys of the data.
+     */
+    private function resolvePath(array $path): array
+    {
+        $resolved = [];
+        $level = $this->data;
+        $previous = null;
+        foreach ($path as $name) {
+            $key = $name;
+            if (is_array($level)
+                && $previous !== '@attributes'
+                && !array_key_exists($name, $level)
+            ) {
+                foreach (array_keys($level) as $candidate) {
+                    if (is_string($candidate)
+                        && !str_starts_with($candidate, '@')
+                        && $this->localName($candidate) === $name
+                    ) {
+                        $key = $candidate;
+                        break;
+                    }
+                }
+            }
+            $level = is_array($level) ? ($level[$key] ?? null) : null;
+            $resolved[] = $key;
+            $previous = $key;
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Reads a value of the data, with or without namespace prefix in the
+     * names of the elements.
+     *
+     * @param non-empty-list<string> $path
+     */
+    private function get(array $path): mixed
+    {
+        return ArrayPath::get($this->data, $this->resolvePath($path));
+    }
+
+    /**
+     * Sets a value of the data, with or without namespace prefix in the names
+     * of the elements.
+     *
+     * @param non-empty-list<string> $path
+     */
+    private function put(array $path, mixed $value): void
+    {
+        $this->data = ArrayPath::set($this->data, $this->resolvePath($path), $value);
     }
 
     /**

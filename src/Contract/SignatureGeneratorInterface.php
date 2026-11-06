@@ -55,6 +55,10 @@ interface SignatureGeneratorInterface
      * expect a single certificate and never need the chain, since they
      * validate the CA out of band. Enable it for verifiers that require or
      * accept the full chain per the XML-DSIG standard.
+     * @param string|null $signaturePrefix The prefix of the namespace with
+     * which the elements of the signature are named (`ds` gives `ds:Signature`,
+     * `ds:SignedInfo`, ...). If it is `null`, the elements have no prefix and
+     * the namespace is declared as the default one.
      * @return string String XML with the generated signature included in the
      * "Signature" tag at the end of the XML (last element within the root node).
      * @throws SignatureException If any problem occurs while signing.
@@ -65,7 +69,8 @@ interface SignatureGeneratorInterface
         CertificateInterface $certificate,
         ?string $reference = null,
         ?string $signatureNamespace = null,
-        bool $includeCertificateChain = false
+        bool $includeCertificateChain = false,
+        ?string $signaturePrefix = null
     ): string;
 
     /**

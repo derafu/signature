@@ -55,14 +55,16 @@ final class SignatureService implements SignatureServiceInterface
         CertificateInterface $certificate,
         ?string $reference = null,
         ?string $signatureNamespace = null,
-        bool $includeCertificateChain = false
+        bool $includeCertificateChain = false,
+        ?string $signaturePrefix = null
     ): string {
         return $this->generator->signXml(
             $xml,
             $certificate,
             $reference,
             $signatureNamespace,
-            $includeCertificateChain
+            $includeCertificateChain,
+            $signaturePrefix
         );
     }
 

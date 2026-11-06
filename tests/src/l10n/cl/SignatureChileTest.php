@@ -21,8 +21,12 @@ use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\Signature\Support\Algorithms;
+use Derafu\Signature\Support\RawSignature;
+use Derafu\Signature\Support\ReferenceData;
 use Derafu\Signature\Support\ReferenceTarget;
 use Derafu\Signature\Support\SignatureElements;
+use Derafu\Signature\Support\SignatureOptions;
 use Derafu\TestsSignature\Support\ReadsFixtures;
 use Derafu\Xml\Service\XmlDecoder;
 use Derafu\Xml\Service\XmlEncoder;
@@ -43,6 +47,10 @@ use Throwable;
 #[CoversClass(SignatureValidationResult::class)]
 #[UsesClass(ReferenceTarget::class)]
 #[UsesClass(SignatureElements::class)]
+#[UsesClass(Algorithms::class)]
+#[UsesClass(RawSignature::class)]
+#[UsesClass(ReferenceData::class)]
+#[UsesClass(SignatureOptions::class)]
 class SignatureChileTest extends TestCase
 {
     use ReadsFixtures;

@@ -60,6 +60,23 @@ final class RecordingSignatureGenerator implements SignatureGeneratorInterface
     /**
      * {@inheritDoc}
      */
+    public function signXmlDetached(
+        CertificateInterface $certificate,
+        array|OptionsInterface $options
+    ): string {
+        $signed = $this->generator->signXmlDetached($certificate, $options);
+        SignedDocumentsLog::record(
+            SignedDocumentsLog::SIGNED_BY_LIBRARY,
+            $signed,
+            self::last(SignatureShape::signatureValues($signed))
+        );
+
+        return $signed;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function generateXmlDigestValue(
         XmlDocumentInterface $doc,
         ?string $reference = null

@@ -19,8 +19,12 @@ use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\Signature\Support\Algorithms;
+use Derafu\Signature\Support\RawSignature;
+use Derafu\Signature\Support\ReferenceData;
 use Derafu\Signature\Support\ReferenceTarget;
 use Derafu\Signature\Support\SignatureElements;
+use Derafu\Signature\Support\SignatureOptions;
 use Derafu\Signature\Translation\SignatureTranslationResourceProvider;
 use Derafu\TestsSignature\Support\ReadsFixtures;
 use Derafu\Translation\Contract\TranslatableInterface;
@@ -53,6 +57,10 @@ use Symfony\Component\Translation\Translator;
 #[CoversClass(SignatureTranslationResourceProvider::class)]
 #[UsesClass(ReferenceTarget::class)]
 #[UsesClass(SignatureElements::class)]
+#[UsesClass(Algorithms::class)]
+#[UsesClass(RawSignature::class)]
+#[UsesClass(ReferenceData::class)]
+#[UsesClass(SignatureOptions::class)]
 final class SignatureExceptionTest extends TestCase
 {
     use ReadsFixtures;

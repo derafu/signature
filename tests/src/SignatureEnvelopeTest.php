@@ -17,11 +17,16 @@ use Derafu\Signature\Service\SignatureService;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\Signature\Support\Algorithms;
+use Derafu\Signature\Support\RawSignature;
+use Derafu\Signature\Support\ReferenceData;
 use Derafu\Signature\Support\ReferenceTarget;
 use Derafu\Signature\Support\SignatureElements;
+use Derafu\Signature\Support\SignatureOptions;
 use Derafu\TestsSignature\Support\UsesXmlsec;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -48,6 +53,10 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SignatureValidationResult::class)]
 #[CoversClass(ReferenceTarget::class)]
 #[CoversClass(SignatureElements::class)]
+#[UsesClass(Algorithms::class)]
+#[UsesClass(RawSignature::class)]
+#[UsesClass(ReferenceData::class)]
+#[UsesClass(SignatureOptions::class)]
 final class SignatureEnvelopeTest extends TestCase
 {
     use UsesXmlsec;

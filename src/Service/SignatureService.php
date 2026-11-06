@@ -62,6 +62,16 @@ final class SignatureService implements SignatureServiceInterface
     /**
      * {@inheritDoc}
      */
+    public function signXmlDetached(
+        CertificateInterface $certificate,
+        array|OptionsInterface $options
+    ): string {
+        return $this->generator->signXmlDetached($certificate, $options);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function generateXmlDigestValue(
         XmlDocumentInterface $doc,
         ?string $reference = null
@@ -89,9 +99,9 @@ final class SignatureService implements SignatureServiceInterface
     /**
      * {@inheritDoc}
      */
-    public function validateXml(XmlDocumentInterface|string $xml): array
+    public function validateXml(XmlDocumentInterface|string $xml, array|OptionsInterface $options = []): array
     {
-        return $this->validator->validateXml($xml);
+        return $this->validator->validateXml($xml, $options);
     }
 
     /**
@@ -107,9 +117,10 @@ final class SignatureService implements SignatureServiceInterface
      */
     public function validateXmlDigestValue(
         XmlDocumentInterface|string $xml,
-        SignatureInterface $signatureNode
+        SignatureInterface $signatureNode,
+        array|OptionsInterface $options = []
     ): void {
-        $this->validator->validateXmlDigestValue($xml, $signatureNode);
+        $this->validator->validateXmlDigestValue($xml, $signatureNode, $options);
     }
 
     /**

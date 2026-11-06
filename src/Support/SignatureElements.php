@@ -23,7 +23,8 @@ final class SignatureElements
 {
     /**
      * Finds the `Signature` elements of a document, in document order, without
-     * the root element.
+     * the root element unless it is asked for (the root of a detached signature
+     * is the signature).
      *
      * An element is found by its local name, so it does not matter the prefix
      * of its namespace (`Signature`, `ds:Signature`). It is an electronic
@@ -32,12 +33,13 @@ final class SignatureElements
      * namespace. Other elements named `Signature`, like the `cac:Signature` of
      * UBL, are not.
      *
+     * @param bool $includeRoot Whether the root element can be a signature.
      * @return list<DOMElement>
      */
-    public static function find(XmlDocumentInterface $doc): array
+    public static function find(XmlDocumentInterface $doc, bool $includeRoot = false): array
     {
         $nodes = (new DOMXPath($doc->getDomDocument()))->query(
-            "/*//*[local-name()='Signature']"
+            ($includeRoot ? '//' : '/*//') . "*[local-name()='Signature']"
             . "[namespace-uri()='http://www.w3.org/2000/09/xmldsig#' or *[local-name()='SignedInfo']]"
         );
 

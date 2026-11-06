@@ -37,6 +37,8 @@ return [
         'No se encontraron firmas para validar en el XML.',
     'The DigestValue that comes in the XML "{xml}" for the reference "{reference}" does not match the calculated value when validating "{calculated}". The data of the reference could have been manipulated after being signed.' =>
         'El DigestValue que viene en el XML "{xml}" para la referencia "{reference}" no coincide con el valor calculado al validar "{calculated}". Los datos de la referencia pudieron ser manipulados después de ser firmados.',
+    'The reference "{reference}" points to a resource that is not in the document, and no resource resolver was given.' =>
+        'La referencia "{reference}" apunta a un recurso que no está en el documento, y no se indicó un resolutor de recursos.',
     'The digest algorithm "{algorithm}" of the signature is not supported.' =>
         'El algoritmo de digest "{algorithm}" de la firma no está soportado.',
     'The signature element with the transforms of the reference was not found in the XML to validate.' =>
@@ -49,6 +51,25 @@ return [
         'Falta el X509Certificate en el nodo de la firma.',
     'The electronic signature of the `SignedInfo` node of the XML for the reference "{reference}" is not valid.' =>
         'La firma electrónica del nodo `SignedInfo` del XML para la referencia "{reference}" no es válida.',
+    // SignatureGenerator: location, references and algorithms.
+    'The XPath "{xpath}" of the location of the signature is not valid.' =>
+        'El XPath "{xpath}" de la ubicación de la firma no es válido.',
+    'The XPath "{xpath}" of the location of the signature selects {count} elements, and it must select one.' =>
+        'El XPath "{xpath}" de la ubicación de la firma selecciona {count} elementos, y debe seleccionar uno.',
+    'The signature can not be placed before or after the root element.' =>
+        'La firma no se puede ubicar antes ni después del elemento raíz.',
+    'The signature has a reference to a resource that is not in the document, and it has no resource resolver.' =>
+        'La firma tiene una referencia a un recurso que no está en el documento, y no tiene un resolutor de recursos.',
+    'The signature algorithm "{algorithm}" is not the one of the type of key of the certificate.' =>
+        'El algoritmo de firma "{algorithm}" no es el del tipo de clave del certificado.',
+    // RawSignature.
+    'The signature is not a sequence of two integers in DER.' =>
+        'La firma no es una secuencia de dos enteros en DER.',
+    'The signature is not the concatenation of two integers of the same size.' =>
+        'La firma no es la concatenación de dos enteros del mismo tamaño.',
+    // ReferenceData.
+    'The XPath of a reference to a resource that is not in the document can not use here().' =>
+        'El XPath de una referencia a un recurso que no está en el documento no puede usar here().',
     // Signature.
     'The Xml instance is not available in Signature.' =>
         'La instancia de Xml no está disponible en Signature.',

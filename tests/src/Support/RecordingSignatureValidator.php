@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\TestsSignature\Support;
 
+use Derafu\Config\Contract\OptionsInterface;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Signature\Contract\SignatureValidatorInterface;
 use Derafu\Xml\Contract\XmlDocumentInterface;
@@ -41,14 +42,14 @@ final class RecordingSignatureValidator implements SignatureValidatorInterface
     /**
      * {@inheritDoc}
      */
-    public function validateXml(XmlDocumentInterface|string $xml): array
+    public function validateXml(XmlDocumentInterface|string $xml, array|OptionsInterface $options = []): array
     {
         SignedDocumentsLog::record(
             SignedDocumentsLog::VALIDATED_BY_LIBRARY,
             is_string($xml) ? $xml : $xml->saveXml()
         );
 
-        return $this->validator->validateXml($xml);
+        return $this->validator->validateXml($xml, $options);
     }
 
     /**
@@ -64,9 +65,10 @@ final class RecordingSignatureValidator implements SignatureValidatorInterface
      */
     public function validateXmlDigestValue(
         XmlDocumentInterface|string $xml,
-        SignatureInterface $signatureNode
+        SignatureInterface $signatureNode,
+        array|OptionsInterface $options = []
     ): void {
-        $this->validator->validateXmlDigestValue($xml, $signatureNode);
+        $this->validator->validateXmlDigestValue($xml, $signatureNode, $options);
     }
 
     /**

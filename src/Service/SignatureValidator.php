@@ -16,14 +16,20 @@ use Derafu\Certificate\AsymmetricKeyHelper;
 use Derafu\Certificate\Contract\OpenSslInterface;
 use Derafu\Certificate\Exception\CertificateException;
 use Derafu\Certificate\Service\OpenSsl;
+use Derafu\Config\Contract\OptionsInterface;
+use Derafu\Signature\Contract\ResourceResolverInterface;
 use Derafu\Signature\Contract\SignatureGeneratorInterface;
 use Derafu\Signature\Contract\SignatureInterface;
 use Derafu\Signature\Contract\SignatureValidatorInterface;
 use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Signature;
 use Derafu\Signature\SignatureValidationResult;
+use Derafu\Signature\Support\Algorithms;
+use Derafu\Signature\Support\RawSignature;
+use Derafu\Signature\Support\ReferenceData;
 use Derafu\Signature\Support\ReferenceTarget;
 use Derafu\Signature\Support\SignatureElements;
+use Derafu\Signature\Support\SignatureOptions;
 use Derafu\Xml\Contract\XmlDocumentInterface;
 use Derafu\Xml\Contract\XmlServiceInterface;
 use Derafu\Xml\Exception\XmlException;
@@ -31,57 +37,13 @@ use Derafu\Xml\XmlDocument;
 use Derafu\Xml\XmlHelper;
 use DOMDocument;
 use DOMElement;
-use DOMNameSpaceNode;
 use DOMNode;
-use DOMXPath;
 
 /**
  * Class that handles the validation of electronic signatures.
  */
 final class SignatureValidator implements SignatureValidatorInterface
 {
-    private const string SHA1 = 'http://www.w3.org/2000/09/xmldsig#sha1';
-
-    private const string TRANSFORM_ENVELOPED = 'http://www.w3.org/2000/09/xmldsig#enveloped-signature';
-
-    private const string TRANSFORM_XPATH = 'http://www.w3.org/TR/1999/REC-xpath-19991116';
-
-    /**
-     * Transforms that canonicalize with the exclusive algorithm.
-     */
-    private const array TRANSFORMS_EXCLUSIVE = [
-        'http://www.w3.org/2001/10/xml-exc-c14n#',
-        'http://www.w3.org/2001/10/xml-exc-c14n#WithComments',
-    ];
-
-    /**
-     * Transforms that canonicalize keeping the comments.
-     */
-    private const array TRANSFORMS_WITH_COMMENTS = [
-        'http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments',
-        'http://www.w3.org/2001/10/xml-exc-c14n#WithComments',
-    ];
-
-    /**
-     * Hash algorithms of the digest of the references, by URI.
-     */
-    private const array DIGEST_ALGORITHMS = [
-        self::SHA1 => 'sha1',
-        'http://www.w3.org/2001/04/xmlenc#sha256' => 'sha256',
-        'http://www.w3.org/2001/04/xmldsig-more#sha384' => 'sha384',
-        'http://www.w3.org/2001/04/xmlenc#sha512' => 'sha512',
-    ];
-
-    /**
-     * Algorithms of the signature of the `SignedInfo`, by URI.
-     */
-    private const array SIGNATURE_ALGORITHMS = [
-        'http://www.w3.org/2000/09/xmldsig#rsa-sha1' => OPENSSL_ALGO_SHA1,
-        'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256' => OPENSSL_ALGO_SHA256,
-        'http://www.w3.org/2001/04/xmldsig-more#rsa-sha384' => OPENSSL_ALGO_SHA384,
-        'http://www.w3.org/2001/04/xmldsig-more#rsa-sha512' => OPENSSL_ALGO_SHA512,
-    ];
-
     public function __construct(
         private readonly SignatureGeneratorInterface $generator,
         private readonly XmlServiceInterface $xmlService,
@@ -127,8 +89,11 @@ final class SignatureValidator implements SignatureValidatorInterface
      * own format settings. If the format of the document is not the one that it
      * had when it was signed, its signature is not valid.
      */
-    public function validateXml(XmlDocumentInterface|string $xml): array
+    public function validateXml(XmlDocumentInterface|string $xml, array|OptionsInterface $options = []): array
     {
+        // The options are valid only for this validation.
+        $resolver = SignatureOptions::resolveResolver($options);
+
         // If a string is passed, it is loaded into an XML document.
         if (is_string($xml)) {
             $doc = new XmlDocument();
@@ -149,7 +114,7 @@ final class SignatureValidator implements SignatureValidatorInterface
 
         // Search for all elements that are tag Signature.
         // An XML document can have more than one signature.
-        $elements = SignatureElements::find($doc);
+        $elements = SignatureElements::find($doc, true);
 
         // If no signatures are found in the XML, an error is thrown.
         if ($elements === []) {
@@ -173,7 +138,7 @@ final class SignatureValidator implements SignatureValidatorInterface
 
                 $error = null;
                 try {
-                    $this->validateXmlDigestValue($doc, $signatureNode);
+                    $this->validateXmlDigestValue($doc, $signatureNode, ['resource_resolver' => $resolver]);
                     $this->validateXmlSignatureValue($signatureNode);
                 } catch (SignatureException $e) {
                     $error = $e;
@@ -221,8 +186,11 @@ final class SignatureValidator implements SignatureValidatorInterface
      */
     public function validateXmlDigestValue(
         XmlDocumentInterface|string $xml,
-        SignatureInterface $signatureNode
+        SignatureInterface $signatureNode,
+        array|OptionsInterface $options = []
     ): void {
+        $resolver = SignatureOptions::resolveResolver($options);
+
         // If an Xml object is passed, it is converted to a string as the object
         // saves it, with its own format settings: the document that is
         // validated is the one that the user has, and its format is not
@@ -239,8 +207,8 @@ final class SignatureValidator implements SignatureValidatorInterface
         // processed with an XPath transform, or whose digest is not SHA1, is
         // validated reference by reference.
         $references = $signatureNode->getReferences();
-        if (count($references) > 1 || ($references !== [] && $this->needsReferenceValidation($references[0]))) {
-            $this->validateReferences($doc, $signatureNode, $references);
+        if (count($references) > 1 || ($references !== [] && $this->needsReferenceValidation($doc, $references[0]))) {
+            $this->validateReferences($doc, $signatureNode, $references, $resolver);
 
             return;
         }
@@ -286,14 +254,20 @@ final class SignatureValidator implements SignatureValidatorInterface
      * @param XmlDocument $doc Document to be validated.
      * @param SignatureInterface $signatureNode Signature node to be validated.
      * @param list<array{uri: string|null, digestMethod: string|null, digestValue: string|null, transforms: list<string>}> $references
+     * @param ResourceResolverInterface|null $resolver Gives the data of the
+     * references to resources that are not in the document.
      * @throws SignatureException If the DigestValue of any reference is invalid.
      */
     private function validateReferences(
         XmlDocument $doc,
         SignatureInterface $signatureNode,
-        array $references
+        array $references,
+        ?ResourceResolverInterface $resolver
     ): void {
         $value = (string) preg_replace('/\s+/', '', (string) $signatureNode->getSignatureValue());
+        $signature = $this->findSignatureElement($doc, $value);
+        $signedInfo = $signature !== null ? (ReferenceData::childrenByName($signature, 'SignedInfo')[0] ?? null) : null;
+        $elements = $signedInfo !== null ? ReferenceData::childrenByName($signedInfo, 'Reference') : [];
 
         foreach ($references as $index => $reference) {
             if ($reference['digestValue'] === null) {
@@ -305,7 +279,7 @@ final class SignatureValidator implements SignatureValidatorInterface
             $algorithm = $this->getDigestAlgorithm($reference['digestMethod']);
 
             $calculated = null;
-            foreach ($this->canonicalizeReference($doc, $value, $index, $reference) as $c14n) {
+            foreach ($this->canonicalizeReference($doc, $signature, $elements[$index] ?? null, $reference, $resolver) as $c14n) {
                 $hash = base64_encode(hash($algorithm, $c14n, true));
                 $calculated ??= $hash;
                 if ($hash === $expected) {
@@ -327,15 +301,18 @@ final class SignatureValidator implements SignatureValidatorInterface
 
     /**
      * Indicates if a reference can not be validated with the SHA1 digest of the
-     * element it points to: it has an XPath transform or another digest
-     * algorithm.
+     * element it points to: it has an XPath transform, the enveloped signature
+     * transform in an element, it is a resource that is not in the document, or
+     * it has another digest algorithm.
      *
      * @param array{uri: string|null, digestMethod: string|null, digestValue: string|null, transforms: list<string>} $reference
      */
-    private function needsReferenceValidation(array $reference): bool
+    private function needsReferenceValidation(XmlDocument $doc, array $reference): bool
     {
         return $this->hasXPathTransform($reference)
-            || ($reference['digestMethod'] !== null && $reference['digestMethod'] !== self::SHA1);
+            || ReferenceData::isExternalTo($doc, $reference['uri'])
+            || ($reference['uri'] !== null && in_array(Algorithms::ENVELOPED, $reference['transforms'], true))
+            || ($reference['digestMethod'] !== null && $reference['digestMethod'] !== Algorithms::DIGESTS['sha1']['uri']);
     }
 
     /**
@@ -345,7 +322,7 @@ final class SignatureValidator implements SignatureValidatorInterface
      */
     private function hasXPathTransform(array $reference): bool
     {
-        return in_array(self::TRANSFORM_XPATH, $reference['transforms'], true);
+        return in_array(Algorithms::XPATH, $reference['transforms'], true);
     }
 
     /**
@@ -361,7 +338,7 @@ final class SignatureValidator implements SignatureValidatorInterface
             return 'sha1';
         }
 
-        return self::DIGEST_ALGORITHMS[$algorithm] ?? throw new SignatureException([
+        return Algorithms::hashByUri($algorithm) ?? throw new SignatureException([
             'The digest algorithm "{algorithm}" of the signature is not supported.',
             'algorithm' => $algorithm,
         ]);
@@ -377,8 +354,8 @@ final class SignatureValidator implements SignatureValidatorInterface
      */
     private function findSignatureElement(XmlDocument $doc, string $value): ?DOMElement
     {
-        foreach (SignatureElements::find($doc) as $element) {
-            $candidate = $this->childrenByName($element, 'SignatureValue')[0] ?? null;
+        foreach (SignatureElements::find($doc, true) as $element) {
+            $candidate = ReferenceData::childrenByName($element, 'SignatureValue')[0] ?? null;
             if ($candidate !== null && preg_replace('/\s+/', '', $candidate->textContent) === $value) {
                 return $element;
             }
@@ -388,207 +365,58 @@ final class SignatureValidator implements SignatureValidatorInterface
     }
 
     /**
-     * Gives the child elements of an element with a local name.
-     *
-     * @return list<DOMElement>
-     */
-    private function childrenByName(DOMElement $element, string $name): array
-    {
-        $children = [];
-        foreach ($element->childNodes as $child) {
-            if ($child instanceof DOMElement && $child->localName === $name) {
-                $children[] = $child;
-            }
-        }
-
-        return $children;
-    }
-
-    /**
      * Gives the canonicalizations of the data of a reference that can have its
      * digest, in the order to try them.
      *
-     * The data is what the URI points to (the whole document, or an element),
-     * after the transforms of the reference.
+     * The data is what the URI points to (the whole document, an element, or a
+     * resource that is not in the document), after the transforms of the
+     * reference.
      *
-     * @param string $value The `SignatureValue` of the signature, without
-     * whitespace, to find its element in the document.
+     * @param DOMElement|null $signature Element of the signature in the
+     * document.
+     * @param DOMElement|null $element Element `Reference` in the signature.
      * @param array{uri: string|null, digestMethod: string|null, digestValue: string|null, transforms: list<string>} $reference
      * @return iterable<string>
      * @throws SignatureException If the transforms need the signature element
-     * and it is not in the document.
+     * and it is not in the document, or the resource is not in the document and
+     * there is no resolver.
      * @throws XmlException If the element of the reference does not exist.
      */
     private function canonicalizeReference(
         XmlDocument $doc,
-        string $value,
-        int $index,
-        array $reference
+        ?DOMElement $signature,
+        ?DOMElement $element,
+        array $reference,
+        ?ResourceResolverInterface $resolver
     ): iterable {
-        $exclusive = false;
-        $withComments = false;
-        foreach ($reference['transforms'] as $transform) {
-            $exclusive = $exclusive || in_array($transform, self::TRANSFORMS_EXCLUSIVE, true);
-            $withComments = $withComments || in_array($transform, self::TRANSFORMS_WITH_COMMENTS, true);
-        }
-
         $uri = $reference['uri'];
-        $target = null;
-        if ($uri !== null) {
-            $target = ReferenceTarget::find($doc, $uri);
-            if (!$target instanceof DOMNode) {
-                throw new XmlException([
-                    'No element with ID "{id}" was found in the XML document.',
-                    'id' => ltrim($uri, '#'),
+
+        // A resource that is not in the document.
+        if (ReferenceData::isExternalTo($doc, $uri)) {
+            if ($resolver === null) {
+                throw new SignatureException([
+                    'The reference "{reference}" points to a resource that is not in the document, and no resource resolver was given.',
+                    'reference' => $uri,
                 ]);
             }
-        }
 
-        // With an XPath transform the data is a set of nodes of the document.
-        if ($this->hasXPathTransform($reference)) {
-            yield $this->canonicalizeNodeSet(
-                $doc,
-                $this->findSignatureElement($doc, $value),
-                $index,
-                $target,
-                $exclusive,
-                $withComments
+            yield ReferenceData::canonicalizeExternal(
+                $resolver->resolve((string) $uri),
+                $element,
+                $reference['transforms']
             );
 
             return;
         }
 
-        // The whole document, without the signature.
-        if ($target === null) {
-            $clone = clone $doc;
-            $signature = $this->findSignatureElement($clone, $value);
-            if ($signature !== null) {
-                $signature->parentNode?->removeChild($signature);
-            }
+        yield ReferenceData::canonicalize($doc, $signature, $element, $uri, $reference['transforms']);
 
-            yield $clone->C14N();
-
-            return;
+        // The data of an element that other signing systems canonicalize in
+        // other ways.
+        $target = ReferenceData::target($doc, $uri);
+        if ($target !== null && !$this->hasXPathTransform($reference)) {
+            yield from $this->alternativeCanonicalizations($target);
         }
-
-        yield XmlHelper::canonicalize($target, $exclusive, $withComments);
-
-        yield from $this->alternativeCanonicalizations($target);
-    }
-
-    /**
-     * Canonicalizes the set of nodes that a reference selects with its
-     * transforms, when it has an XPath transform.
-     *
-     * The set starts with the nodes of the element of the reference, or all the
-     * nodes of the document, and each transform filters it: the enveloped
-     * signature transform leaves out the signature, and the XPath transform
-     * leaves the nodes for which its expression is true. The `here()` function
-     * of the expression is the `XPath` element that contains it.
-     *
-     * @param DOMElement|null $signature Element of the signature in the
-     * document.
-     * @param int $index Position of the reference in the signature.
-     * @param DOMNode|null $target Element of the reference, or `null` for the
-     * whole document.
-     * @throws SignatureException If the element of the signature is not in the
-     * document, or the reference does not have the transforms it declares.
-     */
-    private function canonicalizeNodeSet(
-        XmlDocument $doc,
-        ?DOMElement $signature,
-        int $index,
-        ?DOMNode $target,
-        bool $exclusive,
-        bool $withComments
-    ): string {
-        $signedInfo = $signature !== null ? ($this->childrenByName($signature, 'SignedInfo')[0] ?? null) : null;
-        $referenceElement = $signedInfo !== null ? ($this->childrenByName($signedInfo, 'Reference')[$index] ?? null) : null;
-        $transforms = $referenceElement !== null ? ($this->childrenByName($referenceElement, 'Transforms')[0] ?? null) : null;
-        if ($signature === null || $transforms === null) {
-            throw new SignatureException(
-                'The signature element with the transforms of the reference was not found in the XML to validate.'
-            );
-        }
-
-        if ($target === null) {
-            $nodes = '(//. | //@* | //namespace::*)';
-        } else {
-            $path = $this->getPositionalPath($target);
-            $nodes = '(' . $path . '/descendant-or-self::node() | '
-                . $path . '/descendant-or-self::*/@* | '
-                . $path . '/descendant-or-self::*/namespace::*)';
-        }
-
-        $query = $nodes;
-        $namespaces = [];
-        foreach ($this->childrenByName($transforms, 'Transform') as $transform) {
-            $algorithm = $transform->getAttribute('Algorithm');
-            if ($algorithm === self::TRANSFORM_ENVELOPED) {
-                $query .= '[count(ancestor-or-self::node() | ' . $this->getPositionalPath($signature) . ')'
-                    . ' > count(ancestor-or-self::node())]';
-            } elseif ($algorithm === self::TRANSFORM_XPATH) {
-                $element = $this->childrenByName($transform, 'XPath')[0] ?? null;
-                if ($element === null) {
-                    throw new SignatureException(
-                        'The signature element with the transforms of the reference was not found in the XML to validate.'
-                    );
-                }
-                $expression = (string) preg_replace(
-                    '/\bhere\s*\(\s*\)/',
-                    '(' . $this->getPositionalPath($element) . ')',
-                    $element->textContent
-                );
-                $query .= '[boolean(' . $expression . ')]';
-                $namespaces += $this->getNamespaces($element);
-            }
-        }
-
-        return XmlHelper::canonicalize(
-            $doc->getDomDocument(),
-            $exclusive,
-            $withComments,
-            ['query' => $query, 'namespaces' => $namespaces]
-        );
-    }
-
-    /**
-     * Gives the path of an element from the root with the position of each
-     * element among its sibling elements (`/*[1]/*[3]`), that does not depend on
-     * namespaces.
-     */
-    private function getPositionalPath(DOMNode $node): string
-    {
-        $path = '';
-        for ($current = $node; $current instanceof DOMElement; $current = $current->parentNode) {
-            $position = 1;
-            for ($sibling = $current->previousSibling; $sibling !== null; $sibling = $sibling->previousSibling) {
-                if ($sibling instanceof DOMElement) {
-                    $position++;
-                }
-            }
-            $path = '/*[' . $position . ']' . $path;
-        }
-
-        return $path;
-    }
-
-    /**
-     * Gives the namespaces that are in scope in an element, by prefix.
-     *
-     * @return array<string, string>
-     */
-    private function getNamespaces(DOMElement $element): array
-    {
-        $namespaces = [];
-        $nodes = (new DOMXPath($element->ownerDocument ?? new DOMDocument()))->query('namespace::*', $element);
-        foreach ($nodes !== false ? $nodes : [] as $node) {
-            if ($node instanceof DOMNameSpaceNode && $node->prefix !== '' && $node->prefix !== 'xml') {
-                $namespaces[$node->prefix] = $node->namespaceURI ?? '';
-            }
-        }
-
-        return $namespaces;
     }
 
     /**
@@ -719,21 +547,32 @@ final class SignatureValidator implements SignatureValidatorInterface
             : $signatureNode->getXml()->C14NEncoded($xpath);
 
         // Validate the electronic signature, with the algorithm of its
-        // `SignatureMethod` (SHA1 if it is not one that is known).
-        $algorithm = self::SIGNATURE_ALGORITHMS[$signatureNode->getSignatureMethod() ?? ''] ?? OPENSSL_ALGO_SHA1;
-        $isValid = $this->validate(
+        // `SignatureMethod` (SHA1 if it is not one that is known). The
+        // signatures of ECDSA and DSA are written as the concatenation of
+        // their two integers, and OpenSSL verifies them as DER.
+        $method = Algorithms::signatureByUri($signatureNode->getSignatureMethod() ?? '');
+        $algorithm = $method['openssl'] ?? OPENSSL_ALGO_SHA1;
+        $value = $signatureValue;
+        if ($method !== null && $method['key'] !== OPENSSL_KEYTYPE_RSA) {
+            try {
+                $value = base64_encode(RawSignature::toDer((string) base64_decode($signatureValue)));
+            } catch (SignatureException) {
+                $value = null;
+            }
+        }
+        $isValid = $value !== null && $this->validate(
             $signedInfoC14N,
-            $signatureValue,
+            $value,
             $x509Certificate,
             $algorithm
         );
 
         // If standard C14N fails, try exclusive C14N as fallback.
-        if (!$isValid && $signedInfoNode instanceof DOMNode) {
+        if (!$isValid && $value !== null && $signedInfoNode instanceof DOMNode) {
             $signedInfoC14N = XmlHelper::canonicalize($signedInfoNode, exclusive: true);
             $isValid = $this->validate(
                 $signedInfoC14N,
-                $signatureValue,
+                $value,
                 $x509Certificate,
                 $algorithm
             );
@@ -744,13 +583,13 @@ final class SignatureValidator implements SignatureValidatorInterface
         // that signed the books of the SII certification, sign it as a
         // fragment that does not declare the prefix of its elements (the
         // `ds:` of `<ds:SignedInfo>`), and the SII accepts those signatures.
-        if (!$isValid && $signedInfoNode instanceof DOMNode) {
+        if (!$isValid && $value !== null && $signedInfoNode instanceof DOMNode) {
             $signedInfoC14N = $this->removeNamespaceDeclarations(
                 XmlHelper::canonicalize($signedInfoNode)
             );
             $isValid = $this->validate(
                 $signedInfoC14N,
-                $signatureValue,
+                $value,
                 $x509Certificate,
                 $algorithm
             );

@@ -15,7 +15,12 @@ namespace Derafu\TestsSignature;
 use Derafu\Certificate\Service\CertificateFaker;
 use Derafu\Certificate\Service\CertificateLoader;
 use Derafu\Signature\Signature;
+use Derafu\Signature\Support\Algorithms;
+use Derafu\Signature\Support\RawSignature;
+use Derafu\Signature\Support\ReferenceData;
+use Derafu\Signature\Support\SignatureOptions;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -24,6 +29,10 @@ use PHPUnit\Framework\TestCase;
  * it is `null`.
  */
 #[CoversClass(Signature::class)]
+#[UsesClass(Algorithms::class)]
+#[UsesClass(RawSignature::class)]
+#[UsesClass(ReferenceData::class)]
+#[UsesClass(SignatureOptions::class)]
 final class SignatureTest extends TestCase
 {
     public function testANewSignatureHasNoValues(): void

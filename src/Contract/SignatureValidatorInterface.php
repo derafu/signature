@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\Signature\Contract;
 
+use Derafu\Config\Contract\OptionsInterface;
 use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\SignatureValidationResult;
 use Derafu\Xml\Contract\XmlDocumentInterface;
@@ -43,7 +44,7 @@ interface SignatureValidatorInterface
     ): bool;
 
     /**
-     * Validate the validity of an XML signature using RSA and SHA1.
+     * Validate the validity of the signatures of an XML document.
      *
      * Returns one `SignatureValidationResult` per signature node found. Each
      * result carries the parsed node (with certificate data) and the
@@ -53,11 +54,17 @@ interface SignatureValidatorInterface
      * Only throws for structural problems (malformed XML, no signatures found).
      *
      * @param XmlDocumentInterface|string $xml XML string to be validated.
+     * @param array<array-key, mixed>|OptionsInterface $options Options of the
+     * validation:
+     * - `resource_resolver` (`ResourceResolverInterface|null`, default `null`):
+     *   Gives the data of the resources that the references point to and that
+     *   are not in the document (detached signatures). A signature with a
+     *   reference to one of them is not valid without it.
      * @return array<SignatureValidationResult> One result per signature node.
      * @throws SignatureException If the XML is malformed or has no signatures.
      */
     #[NoDiscard()]
-    public function validateXml(XmlDocumentInterface|string $xml): array;
+    public function validateXml(XmlDocumentInterface|string $xml, array|OptionsInterface $options = []): array;
 
     /**
      * Creates the `Xml` instance of `Signature` from a string XML with the
@@ -73,12 +80,15 @@ interface SignatureValidatorInterface
      *
      * @param XmlDocumentInterface|string $xml Document to be validated.
      * @param SignatureInterface $signatureNode Signature node to be validated.
+     * @param array<array-key, mixed>|OptionsInterface $options Options of the
+     * validation, see `validateXml()`.
      * @return void
      * @throws SignatureException If the DigestValue is invalid.
      */
     public function validateXmlDigestValue(
         XmlDocumentInterface|string $xml,
-        SignatureInterface $signatureNode
+        SignatureInterface $signatureNode,
+        array|OptionsInterface $options = []
     ): void;
 
     /**

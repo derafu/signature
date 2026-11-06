@@ -20,8 +20,12 @@ use Derafu\Signature\Exception\SignatureException;
 use Derafu\Signature\Service\SignatureGenerator;
 use Derafu\Signature\Service\SignatureValidator;
 use Derafu\Signature\Signature;
+use Derafu\Signature\Support\Algorithms;
+use Derafu\Signature\Support\RawSignature;
+use Derafu\Signature\Support\ReferenceData;
 use Derafu\Signature\Support\ReferenceTarget;
 use Derafu\Signature\Support\SignatureElements;
+use Derafu\Signature\Support\SignatureOptions;
 use Derafu\Translation\Contract\TranslatableInterface;
 use Derafu\Xml\Exception\XmlException;
 use Derafu\Xml\Service\XmlDecoder;
@@ -46,6 +50,10 @@ use Throwable;
 #[CoversClass(SignatureException::class)]
 #[UsesClass(ReferenceTarget::class)]
 #[UsesClass(SignatureElements::class)]
+#[UsesClass(Algorithms::class)]
+#[UsesClass(RawSignature::class)]
+#[UsesClass(ReferenceData::class)]
+#[UsesClass(SignatureOptions::class)]
 final class SignatureEdgeCasesTest extends TestCase
 {
     /**

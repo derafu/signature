@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Signature;
 
 use Derafu\Array\ArrayPath;
+use Derafu\Array\ArrayReader;
 use Derafu\Certificate\Certificate;
 use Derafu\Certificate\Contract\CertificateInterface;
 use Derafu\Certificate\Exception\CertificateException;
@@ -172,6 +173,160 @@ final class Signature implements SignatureInterface
     }
 
     /**
+     * Sets the algorithm with which the `SignedInfo` is canonicalized.
+     *
+     * @param string $algorithm URI of the algorithm.
+     * @return static The current instance for method chaining.
+     */
+    public function setCanonicalizationMethod(string $algorithm): static
+    {
+        $this->put(
+            ['Signature', 'SignedInfo', 'CanonicalizationMethod', '@attributes', 'Algorithm'],
+            $algorithm
+        );
+        $this->invalidateXml();
+
+        return $this;
+    }
+
+    /**
+     * Sets the algorithm with which the `SignedInfo` is signed.
+     *
+     * @param string $algorithm URI of the algorithm.
+     * @return static The current instance for method chaining.
+     */
+    public function setSignatureMethod(string $algorithm): static
+    {
+        $this->put(
+            ['Signature', 'SignedInfo', 'SignatureMethod', '@attributes', 'Algorithm'],
+            $algorithm
+        );
+        $this->invalidateXml();
+
+        return $this;
+    }
+
+    /**
+     * Sets the `Id` of the `Signature` element, so it can be referenced.
+     *
+     * @return static The current instance for method chaining.
+     */
+    public function setSignatureId(string $id): static
+    {
+        $this->put(['Signature', '@attributes', 'Id'], $id);
+        $this->invalidateXml();
+
+        return $this;
+    }
+
+    /**
+     * Sets the `Id` of the `SignatureValue` element, so it can be referenced
+     * (a countersignature signs the value of another signature).
+     *
+     * @return static The current instance for method chaining.
+     */
+    public function setSignatureValueId(string $id): static
+    {
+        $path = ['Signature', 'SignatureValue'];
+        $current = $this->get($path);
+        $value = is_array($current) ? ($current['@value'] ?? '') : $current;
+        $this->put($path, ['@attributes' => ['Id' => $id], '@value' => $value]);
+        $this->invalidateXml();
+
+        return $this;
+    }
+
+    /**
+     * Sets the references of the signature, in the `SignedInfo`.
+     *
+     * @param list<array{uri: string, id: string|null, type: string|null, digestAlgorithm: string, digestValue: string, transforms: list<array{algorithm: string, expression: string|null, namespaces: array<string, string>}>}> $references
+     * For each reference: its `URI`, its `Id` and `Type`, the URI of the
+     * digest algorithm, the digest and its transforms (the URI of the algorithm
+     * and, for XPath, the expression with the namespaces of its prefixes).
+     * @return static The current instance for method chaining.
+     */
+    public function setReferences(array $references): static
+    {
+        $nodes = [];
+        foreach ($references as $reference) {
+            $attributes = ['URI' => $reference['uri']];
+            if ($reference['id'] !== null) {
+                $attributes['Id'] = $reference['id'];
+            }
+            if ($reference['type'] !== null) {
+                $attributes['Type'] = $reference['type'];
+            }
+            $node = ['@attributes' => $attributes];
+
+            $transforms = [];
+            foreach ($reference['transforms'] as $transform) {
+                $item = ['@attributes' => ['Algorithm' => $transform['algorithm']]];
+                if ($transform['expression'] !== null) {
+                    $declarations = [];
+                    foreach ($transform['namespaces'] as $prefix => $namespace) {
+                        $declarations['xmlns:' . $prefix] = $namespace;
+                    }
+                    $item['XPath'] = ['@attributes' => $declarations, '@value' => $transform['expression']];
+                }
+                $transforms[] = $item;
+            }
+            if ($transforms !== []) {
+                $node['Transforms'] = ['Transform' => count($transforms) === 1 ? $transforms[0] : $transforms];
+            }
+            $node['DigestMethod'] = ['@attributes' => ['Algorithm' => $reference['digestAlgorithm']]];
+            $node['DigestValue'] = $reference['digestValue'];
+
+            $prefix = $this->getSignaturePrefix();
+            $nodes[] = $prefix === null ? $node : $this->renameElements($node, $prefix);
+        }
+
+        $this->put(
+            ['Signature', 'SignedInfo', 'Reference'],
+            count($nodes) === 1 ? $nodes[0] : $nodes
+        );
+        $this->invalidateXml();
+
+        return $this;
+    }
+
+    /**
+     * Sets the `Object` elements of the signature, after its `KeyInfo`.
+     *
+     * The content of each object is not an array of data but XML: it is given
+     * as a text that the one that writes the signature replaces with the XML
+     * (`$content`, that must not appear in the XML).
+     *
+     * @param list<array{id: string|null, mimeType: string|null, encoding: string|null, content: string}> $objects
+     * @return static The current instance for method chaining.
+     */
+    public function setObjects(array $objects): static
+    {
+        $nodes = [];
+        foreach ($objects as $object) {
+            $attributes = [];
+            if ($object['id'] !== null) {
+                $attributes['Id'] = $object['id'];
+            }
+            if ($object['mimeType'] !== null) {
+                $attributes['MimeType'] = $object['mimeType'];
+            }
+            if ($object['encoding'] !== null) {
+                $attributes['Encoding'] = $object['encoding'];
+            }
+            $nodes[] = ['@attributes' => $attributes, '@value' => $object['content']];
+        }
+
+        $prefix = $this->getSignaturePrefix();
+        $this->put(
+            ['Signature', $prefix === null ? 'Object' : $prefix . ':Object'],
+            count($nodes) === 1 ? $nodes[0] : $nodes
+        );
+        $this->invalidateXml();
+
+        return $this;
+    }
+
+    /**
      * {@inheritDoc}
      */
     public function setXml(XmlDocumentInterface $xml): static
@@ -298,9 +453,11 @@ final class Signature implements SignatureInterface
      */
     public function setSignatureValue(string $signatureValue): static
     {
-        // Assign the electronic signature of the `SignedInfo` node.
+        // Assign the electronic signature of the `SignedInfo` node. If the node
+        // has attributes (its `Id`), they are kept.
+        $path = ['Signature', 'SignatureValue'];
         $this->put(
-            ['Signature', 'SignatureValue'],
+            is_array($this->get($path)) ? [...$path, '@value'] : $path,
             wordwrap($signatureValue, 64, "\n", true)
         );
 
@@ -406,15 +563,21 @@ final class Signature implements SignatureInterface
         bool $includeCertificateChain = false
     ): static {
         // Add module and exponent, which allow others to validate the XML
-        // signature.
-        $this->put(
-            ['Signature', 'KeyInfo', 'KeyValue', 'RSAKeyValue', 'Modulus'],
-            $certificate->getModulus()
-        );
-        $this->put(
-            ['Signature', 'KeyInfo', 'KeyValue', 'RSAKeyValue', 'Exponent'],
-            $certificate->getExponent()
-        );
+        // signature. Only an RSA key has them: with another kind of key
+        // (elliptic curve, DSA) the `KeyInfo` has only the certificate, that
+        // has the public key.
+        if (ArrayReader::fromArray($certificate->getPublicKeyDetails())->getInt('type', OPENSSL_KEYTYPE_RSA) === OPENSSL_KEYTYPE_RSA) {
+            $this->put(
+                ['Signature', 'KeyInfo', 'KeyValue', 'RSAKeyValue', 'Modulus'],
+                $certificate->getModulus()
+            );
+            $this->put(
+                ['Signature', 'KeyInfo', 'KeyValue', 'RSAKeyValue', 'Exponent'],
+                $certificate->getExponent()
+            );
+        } else {
+            $this->removeKeyValue();
+        }
 
         // Add the certificate. If the trust chain was requested and the
         // certificate has one, it is embedded as additional sibling
@@ -617,10 +780,13 @@ final class Signature implements SignatureInterface
     {
         $renamed = [];
         foreach ($data as $key => $value) {
-            if (is_string($key) && $key !== '@attributes') {
+            $isElement = is_string($key) && !str_starts_with($key, '@');
+            if ($isElement) {
                 $key = $prefix . ':' . $this->localName($key);
             }
-            $renamed[$key] = is_array($value) && $key !== '@attributes'
+            // The items of a list (integer keys) hold elements too.
+            $isData = !is_string($key) || !str_starts_with($key, '@');
+            $renamed[$key] = is_array($value) && $isData
                 ? $this->renameElements($value, $prefix)
                 : $value;
         }
@@ -701,6 +867,25 @@ final class Signature implements SignatureInterface
     private function put(array $path, mixed $value): void
     {
         $this->data = ArrayPath::set($this->data, $this->resolvePath($path), $value);
+    }
+
+    /**
+     * Removes the `KeyValue` of the `KeyInfo`.
+     */
+    private function removeKeyValue(): void
+    {
+        $path = ['Signature', 'KeyInfo'];
+        $keyInfo = $this->get($path);
+        if (!is_array($keyInfo)) {
+            return;
+        }
+
+        foreach (array_keys($keyInfo) as $key) {
+            if (is_string($key) && $this->localName($key) === 'KeyValue') {
+                unset($keyInfo[$key]);
+            }
+        }
+        $this->put($path, $keyInfo);
     }
 
     /**

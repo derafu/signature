@@ -20,6 +20,7 @@ use Derafu\Signature\SignatureValidationResult;
 use Derafu\Signature\Support\ReferenceTarget;
 use Derafu\Signature\Support\SignatureElements;
 use Derafu\TestsSignature\Support\UsesXmlsec;
+use Derafu\Xml\XmlDocument;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -174,6 +175,42 @@ final class SignatureXmlsecTest extends TestCase
         $this->assertFalse(
             $this->service->validateXml(str_replace('<V>1</V>', '<V>2</V>', $signed))[0]->isValid()
         );
+    }
+
+    /**
+     * A document that `xmlsec1` signed as it is, loaded in an `XmlDocument` and
+     * saved, keeps its signature: the spaces between its elements (also when it
+     * has none) are part of what is signed, and the `XmlDocument` does not
+     * change them.
+     *
+     * @param list<array{string, string, list<array{string, string}>}> $references
+     */
+    #[DataProvider('xmlsecCaseProvider')]
+    public function testDocumentSignedByXmlsecKeepsItsSignatureWhenAnXmlDocumentLoadsAndSavesIt(
+        string $document,
+        string $prefix,
+        string $signatureMethod,
+        string $canonicalization,
+        array $references,
+        bool $keyValue = false,
+        string $object = '',
+        ?string $ids = null
+    ): void {
+        $template = str_replace(
+            '%q%',
+            $prefix !== '' ? $prefix . ':' : '',
+            $this->template($prefix, $signatureMethod, $canonicalization, $references, $keyValue, $object)
+        );
+        $ids ??= self::idsOf($document);
+        $signed = $this->signWithXmlsec(str_replace('%SIG%', $template, self::documents()[$document]), $ids);
+
+        $xmlDocument = new XmlDocument();
+        $xmlDocument->loadXml($signed);
+        $saved = $xmlDocument->saveXml();
+
+        $this->assertTrue($this->service->validateXml($saved)[0]->isValid());
+        $this->assertTrue($this->service->validateXml($xmlDocument)[0]->isValid());
+        $this->assertTrue($this->verifyWithXmlsec($saved, $ids));
     }
 
     public function testXPathTransformThatLeavesOutTheDataIsNotAffectedByItsChange(): void

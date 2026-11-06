@@ -58,6 +58,16 @@
             {"search": "<SigningTime>2020", "replace": "<SigningTime>2021", "signatures": [false]}
         ]
     },
+    "xmlsec_compact_document.xml": {
+        "description": "A document with no spaces between its elements, signed by xmlsec1 as it is. The spaces between the elements are part of what is signed, so the signature is only valid while the document keeps them as they are.",
+        "signatures": [true],
+        "changes": [
+            {"search": "<V>1</V>", "replace": "<V>2</V>", "signatures": [false]},
+            {"search": "<Item>2</Item>", "replace": "<Item>3</Item>", "signatures": [false]},
+            {"search": "<V>1</V><Glosa>", "replace": "<V>1</V>\n<Glosa>", "signatures": [false]},
+            {"search": "</Doc><Signature", "replace": "</Doc>\n<Signature", "signatures": [true]}
+        ]
+    },
     "xmlsec_package.xml": {
         "description": "An envelope with two documents signed alone and the signature of the set, all signed by xmlsec1: three signatures.",
         "signatures": [true, true, true],

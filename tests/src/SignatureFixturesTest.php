@@ -22,6 +22,7 @@ use Derafu\Signature\Support\ReferenceTarget;
 use Derafu\Signature\Support\SignatureElements;
 use Derafu\TestsSignature\Support\ReadsFixtures;
 use Derafu\TestsSignature\Support\UsesXmlsec;
+use Derafu\Xml\XmlDocument;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -108,6 +109,21 @@ final class SignatureFixturesTest extends TestCase
     }
 
     /**
+     * @return array<string, array{string}>
+     */
+    public static function signedFixtureProvider(): array
+    {
+        $cases = [];
+        foreach (self::manifest() as $file => $fixture) {
+            if (isset($fixture['signatures'])) {
+                $cases[$file] = [$file];
+            }
+        }
+
+        return $cases;
+    }
+
+    /**
      * Gives the validity of each signature of a document.
      *
      * @return list<bool>
@@ -160,5 +176,39 @@ final class SignatureFixturesTest extends TestCase
         $changed = str_replace($change['search'], $change['replace'], $xml);
 
         $this->assertSame($change['signatures'], $this->validity($changed));
+    }
+
+    /**
+     * The spaces between the elements of a signed document are part of what is
+     * signed. A document that is loaded in an `XmlDocument` and saved has to
+     * keep them as they are: the signatures keep their validity.
+     */
+    #[DataProvider('signedFixtureProvider')]
+    public function testFixtureLoadedAndSavedByAnXmlDocumentKeepsItsSignatures(string $file): void
+    {
+        $xml = $this->readFixture(self::DIRECTORY . '/' . $file);
+        $document = new XmlDocument();
+        $document->loadXml($xml);
+
+        $saved = $document->saveXml();
+
+        $this->assertSame(self::manifest()[$file]['signatures'] ?? null, $this->validity($saved));
+    }
+
+    /**
+     * The same, validating the `XmlDocument` and not its text.
+     */
+    #[DataProvider('signedFixtureProvider')]
+    public function testSignaturesOfTheFixtureThatIsAnXmlDocument(string $file): void
+    {
+        $document = new XmlDocument();
+        $document->loadXml($this->readFixture(self::DIRECTORY . '/' . $file));
+
+        $results = array_values(array_map(
+            static fn (SignatureValidationResult $result): bool => $result->isValid(),
+            $this->service->validateXml($document)
+        ));
+
+        $this->assertSame(self::manifest()[$file]['signatures'] ?? null, $results);
     }
 }

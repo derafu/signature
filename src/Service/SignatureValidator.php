@@ -121,6 +121,11 @@ final class SignatureValidator implements SignatureValidatorInterface
 
     /**
      * {@inheritDoc}
+     *
+     * The format of the document is not changed: a string is validated as it
+     * is, and an `XmlDocumentInterface` as it is saved by `saveXml()`, with its
+     * own format settings. If the format of the document is not the one that it
+     * had when it was signed, its signature is not valid.
      */
     public function validateXml(XmlDocumentInterface|string $xml): array
     {
@@ -218,18 +223,12 @@ final class SignatureValidator implements SignatureValidatorInterface
         XmlDocumentInterface|string $xml,
         SignatureInterface $signatureNode
     ): void {
-        // If an Xml object is passed, it is converted to a string, as it is: the
-        // format of the document can not be changed, since the digest is over
-        // the data that was signed.
+        // If an Xml object is passed, it is converted to a string as the object
+        // saves it, with its own format settings: the document that is
+        // validated is the one that the user has, and its format is not
+        // changed.
         if (!is_string($xml)) {
-            $dom = $xml->getDomDocument();
-            $format = $dom->formatOutput;
-            $dom->formatOutput = false;
-            try {
-                $xml = $xml->saveXml();
-            } finally {
-                $dom->formatOutput = $format;
-            }
+            $xml = $xml->saveXml();
         }
 
         // Load the string XML into an XML document.

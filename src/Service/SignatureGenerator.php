@@ -77,6 +77,22 @@ final class SignatureGenerator implements SignatureGeneratorInterface
 
     /**
      * {@inheritDoc}
+     *
+     * The document is signed as it is given, and its format is not changed: the
+     * spaces between its elements are part of what is signed. A string is signed
+     * as it is. An `XmlDocumentInterface` is signed as it is saved by
+     * `saveXml()`, with its own format settings, so whoever has the object is
+     * the one that decides if the document has format (see
+     * `XmlDocumentInterface::setFormatOutput()`).
+     *
+     * The returned XML is the document with the signature, written again by the
+     * XML library, so it can differ from the given one in things that do not
+     * change the meaning of the XML nor the validity of the signature: the XML
+     * declaration is added or normalized, there is a line break at the end, an
+     * empty element is written as `<a/>`, the attributes of an element are
+     * written in one line with double quotes, and the character references can
+     * be written in another form. This can change in the future, without
+     * changing how the document is signed nor its validity.
      */
     public function signXml(
         XmlDocumentInterface|string $xml,
@@ -86,9 +102,9 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         bool $includeCertificateChain = false,
         ?string $signaturePrefix = null
     ): string {
-        // If an Xml object is passed, it is converted to a string. This is
-        // necessary to keep the "pretty" format if it was passed and to be able
-        // to get the C14N correctly.
+        // If an Xml object is passed, it is converted to a string as the object
+        // saves it, with its own format settings: the document that is signed
+        // is the one that the user has, and its format is not changed.
         if (!is_string($xml)) {
             $xml = $xml->saveXml();
         }
@@ -96,12 +112,6 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // Load the XML that will be signed.
         $doc = new XmlDocument();
         $doc->loadXml($xml);
-
-        // The document is signed as it will be written, with the "pretty"
-        // format. An XML without it (all in one line) is formatted before
-        // calculating the digest, since formatting it later would change the
-        // data that was signed.
-        $doc->loadXml($doc->saveXml());
         $rootElement = $doc->requireDocumentElement();
 
         // Generate the "DigestValue" of the reference data.

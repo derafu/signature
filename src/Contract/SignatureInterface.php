@@ -184,7 +184,7 @@ interface SignatureInterface extends JsonSerializable
      * signer's certificate (`null` if it can not be read). The XML of the node
      * and the private key are never included.
      *
-     * @return array{reference: string|null, canonicalizationMethod: string|null, signatureMethod: string|null, digestMethod: string|null, digestValue: string|null, signatureValue: string|null, modulus: string|null, exponent: string|null, certificate: string|null, certificateChain: string[], signer: array<string, mixed>|null}
+     * @return array{reference: string|null, canonicalization_method: string|null, signature_method: string|null, digest_method: string|null, digest_value: string|null, signature_value: string|null, modulus: string|null, exponent: string|null, certificate: string|null, certificate_chain: string[], signer: array<string, mixed>|null}
      */
     #[NoDiscard()]
     public function toArray(): array;

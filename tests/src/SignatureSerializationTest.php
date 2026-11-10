@@ -82,8 +82,8 @@ class SignatureSerializationTest extends TestCase
         $this->assertTrue($array['valid']);
         $this->assertNull($array['error']);
         $this->assertSame($result->getSignatureNode()->toArray(), $array['signature']);
-        $this->assertNotEmpty($array['signature']['digestValue']);
-        $this->assertNotEmpty($array['signature']['signatureValue']);
+        $this->assertNotEmpty($array['signature']['digest_value']);
+        $this->assertNotEmpty($array['signature']['signature_value']);
         $this->assertNotEmpty($array['signature']['modulus']);
         $this->assertNotEmpty($array['signature']['exponent']);
         $this->assertNotEmpty($array['signature']['certificate']);
@@ -118,7 +118,7 @@ class SignatureSerializationTest extends TestCase
                 array_map(strval(...), $error->getErrors()),
                 $arrayError['errors']
             );
-            $this->assertNotEmpty($array['signature']['signatureValue']);
+            $this->assertNotEmpty($array['signature']['signature_value']);
             $this->assertJson((string) json_encode($result));
         }
     }
@@ -127,16 +127,29 @@ class SignatureSerializationTest extends TestCase
     {
         $array = (new Signature())->toArray();
 
+        $this->assertSame([
+            'reference',
+            'canonicalization_method',
+            'signature_method',
+            'digest_method',
+            'digest_value',
+            'signature_value',
+            'modulus',
+            'exponent',
+            'certificate',
+            'certificate_chain',
+            'signer',
+        ], array_keys($array));
         $this->assertNull($array['reference']);
-        $this->assertNull($array['digestValue']);
-        $this->assertNull($array['signatureValue']);
+        $this->assertNull($array['digest_value']);
+        $this->assertNull($array['signature_value']);
         $this->assertNull($array['modulus']);
         $this->assertNull($array['certificate']);
-        $this->assertSame([], $array['certificateChain']);
+        $this->assertSame([], $array['certificate_chain']);
         $this->assertNull($array['signer']);
         $this->assertSame(
             'http://www.w3.org/2000/09/xmldsig#rsa-sha1',
-            $array['signatureMethod']
+            $array['signature_method']
         );
         $this->assertSame($array, (new Signature())->jsonSerialize());
     }
@@ -162,9 +175,9 @@ class SignatureSerializationTest extends TestCase
         $array = $signature->toArray();
 
         $this->assertSame('ID1', $array['reference']);
-        $this->assertSame('abc', $array['digestValue']);
+        $this->assertSame('abc', $array['digest_value']);
         $this->assertSame('not a certificate', $array['certificate']);
-        $this->assertSame(['chain1', 'chain2'], $array['certificateChain']);
+        $this->assertSame(['chain1', 'chain2'], $array['certificate_chain']);
         $this->assertNull($array['signer']);
     }
 }

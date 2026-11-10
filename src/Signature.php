@@ -615,21 +615,21 @@ final class Signature implements SignatureInterface
 
         return [
             'reference' => $this->getReference(),
-            'canonicalizationMethod' => $this->getText([
+            'canonicalization_method' => $this->getText([
                 ...$signedInfo, 'CanonicalizationMethod', '@attributes', 'Algorithm',
             ]),
-            'signatureMethod' => $this->getText([
+            'signature_method' => $this->getText([
                 ...$signedInfo, 'SignatureMethod', '@attributes', 'Algorithm',
             ]),
-            'digestMethod' => $this->getText([
+            'digest_method' => $this->getText([
                 ...$reference, 'DigestMethod', '@attributes', 'Algorithm',
             ]),
-            'digestValue' => $this->getDigestValue(),
-            'signatureValue' => $this->getSignatureValue(),
+            'digest_value' => $this->getDigestValue(),
+            'signature_value' => $this->getSignatureValue(),
             'modulus' => $this->getText([...$rsaKeyValue, 'Modulus']),
             'exponent' => $this->getText([...$rsaKeyValue, 'Exponent']),
             'certificate' => $this->getX509Certificate(),
-            'certificateChain' => $this->getX509CertificateChain(),
+            'certificate_chain' => $this->getX509CertificateChain(),
             'signer' => $this->getSignerData(),
         ];
     }

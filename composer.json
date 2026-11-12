@@ -42,11 +42,13 @@
         "phpunit/phpunit": "^13.4",
         "nikic/php-parser": "^5.9",
         "symfony/dependency-injection": "^8.1",
-        "symfony/config": "^8.1"
+        "symfony/config": "^8.1",
+        "infection/infection": "^0.35.10"
     },
     "scripts": {
         "docs": "php tools/phpdocumentor run --config=phpdoc.xml",
         "tests": "XDEBUG_MODE=coverage vendor/bin/phpunit --configuration=phpunit.xml",
+        "infection": "XDEBUG_MODE=coverage vendor/bin/infection --threads=max --no-progress --with-uncovered --only-covering-test-cases",
         "phpcs-fix": "vendor/bin/php-cs-fixer fix -v --config=php-cs-fixer.php",
         "phpcs": "vendor/bin/php-cs-fixer fix -v --dry-run --diff --config=php-cs-fixer.php",
         "phpstan": "vendor/bin/phpstan analyse --configuration=phpstan.neon --memory-limit=1G",
@@ -57,5 +59,10 @@
         "nikic/php-parser": "Required by the tests of the messages of the package (Derafu\\Translation\\Lint reads the code)."
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": true
+        }
+    }
 }

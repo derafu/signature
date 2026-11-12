@@ -220,20 +220,27 @@ final class SignatureGenerator implements SignatureGeneratorInterface
 
         // When there is no reference, the digest is over the entire XML.
         // If the XML already has a "Signature" node within the root node, it
-        // must be removed before obtaining its C14N.
-        $docClone = clone $doc;
-        $rootElement = $docClone->getDocumentElement();
-        if ($rootElement === null) {
+        // is left out of the C14N, without changing the document.
+        if ($doc->getDocumentElement() === null) {
             throw new SignatureException(
                 'Could not get the documentElement from the XML to sign (possible malformed XML).'
             );
         }
-        $signatureElement = SignatureElements::find($docClone)[0] ?? null;
-        if ($signatureElement !== null) {
-            $signatureElement->parentNode?->removeChild($signatureElement);
+        $signatureElement = SignatureElements::find($doc)[0] ?? null;
+        if ($signatureElement === null) {
+            return $doc->C14N();
         }
 
-        return $docClone->C14N();
+        // Every node of the document except the signature and what is inside
+        // it, in XPath 1.0: `count(. | path) = 1` is true when the node is the
+        // one at the path.
+        $path = ReferenceData::positionalPath($signatureElement);
+
+        return $doc->C14N(xpath: [
+            'query' => '(descendant-or-self::node() | //@* | //namespace::*)'
+                . '[not(ancestor-or-self::node()[count(. | ' . $path . ') = 1])]',
+            'namespaces' => [],
+        ]);
     }
 
     /**

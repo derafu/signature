@@ -245,4 +245,15 @@ trait UsesXmlsec
 
         return $options . ($nodeXPath !== null ? ' --node-xpath ' . escapeshellarg($nodeXPath) : '');
     }
+
+    /**
+     * Signs with another certificate: the one of the test and the one that
+     * `xmlsec1` uses.
+     */
+    private function useCertificate(CertificateInterface $certificate): void
+    {
+        $this->certificate = $certificate;
+        file_put_contents($this->xmlsecDirectory . '/key.pem', $certificate->getPrivateKey());
+        file_put_contents($this->xmlsecDirectory . '/cert.pem', $certificate->getCertificate());
+    }
 }

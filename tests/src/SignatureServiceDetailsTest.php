@@ -134,6 +134,30 @@ final class SignatureServiceDetailsTest extends TestCase
         $results = $this->service->validateXml($changed);
         $this->assertFalse($results[0]->isValid());
         $this->assertFalse($results[1]->isValid());
+        // The signature of the element is validated with its reference as it is
+        // written in the signature, not as the signature of the whole document.
+        $this->assertStringContainsString('for the reference "D1"', (string) $results[0]->getError()?->getMessage());
+        $this->assertStringContainsString('for the reference ""', (string) $results[1]->getError()?->getMessage());
+    }
+
+    /**
+     * The digest of the whole document is the one of the document without its
+     * signature, also when the signature that is validated is not in the
+     * document: another signature of the same data (a different `SignedInfo`).
+     */
+    public function testTheDigestOfTheWholeDocumentIsValidatedWithoutTheSignatureOfTheDocument(): void
+    {
+        $data = '<r><a>1</a></r>';
+        $signed = $this->service->signXml($data, $this->certificate);
+        $other = $this->service->signXml($data, $this->certificate, ['canonicalization_method' => 'exc_c14n']);
+        preg_match('~<Signature .*</Signature>~s', $other, $matches);
+        $signature = $matches[0] ?? '';
+        $this->assertNotSame('', $signature);
+        $node = $this->service->createSignatureNode($signature);
+
+        $this->service->validateXmlDigestValue($signed, $node);
+
+        $this->assertSame(1, $this->countSignatures($signed));
     }
 
     public function testTheSignaturesOfAnElementAreKeptWhenTheSignatureHasAReference(): void

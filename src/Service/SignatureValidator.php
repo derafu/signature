@@ -207,7 +207,11 @@ final class SignatureValidator implements SignatureValidatorInterface
         // processed with an XPath transform, or whose digest is not SHA1, is
         // validated reference by reference.
         $references = $signatureNode->getReferences();
-        if (count($references) > 1 || ($references !== [] && $this->needsReferenceValidation($doc, $references[0]))) {
+        if (
+            count($references) > 1
+            || ($references !== [] && $this->needsReferenceValidation($doc, $references[0]))
+            || ($references !== [] && $this->isWholeDocumentWithOtherSignatures($doc, $references[0]))
+        ) {
             $this->validateReferences($doc, $signatureNode, $references, $resolver);
 
             return;
@@ -313,6 +317,24 @@ final class SignatureValidator implements SignatureValidatorInterface
             || ReferenceData::isExternalTo($doc, $reference['uri'])
             || ($reference['uri'] !== null && in_array(Algorithms::ENVELOPED, $reference['transforms'], true))
             || ($reference['digestMethod'] !== null && $reference['digestMethod'] !== Algorithms::DIGESTS['sha1']['uri']);
+    }
+
+    /**
+     * Indicates if a reference is to the whole document and the document has
+     * more than one signature.
+     *
+     * The data of the whole document is the document without the signature that
+     * is validated, and only that one (XML Signature 1.1, section 6.6.4): the
+     * other signatures are part of the data. The short form of one reference
+     * leaves out the first signature of the document, which is the one that
+     * is validated only if the document has one.
+     *
+     * @param array{uri: string|null, digestMethod: string|null, digestValue: string|null, transforms: list<string>} $reference
+     */
+    private function isWholeDocumentWithOtherSignatures(XmlDocument $doc, array $reference): bool
+    {
+        return ($reference['uri'] === null || $reference['uri'] === '')
+            && count(SignatureElements::find($doc, true)) > 1;
     }
 
     /**

@@ -109,11 +109,23 @@ final class SignatureGenerator implements SignatureGeneratorInterface
      * element. With `references` the digests are made with the signature in
      * its place in the document, as it is validated.
      *
-     * Without `reference` and without `references`, if the document already has
-     * a signature, the first one is not in the returned XML: it is removed from
-     * the document before the digest is calculated, and the new signature is
-     * the only one. With `reference` or `references` the signatures that the
-     * document has are kept, and the new one is added.
+     * Without `reference` and without `references` the signature is of the
+     * whole document, and the signatures that the document has as children of
+     * the root element are not in the returned XML: they are removed from the
+     * document before the digest is calculated, and the new signature is the
+     * only one of the whole document. The signatures that are inside of other
+     * elements, like the ones of the documents of an envelope, are kept and
+     * they are part of what is signed. With `reference` or `references` the
+     * signatures that the document has are kept, and the new one is added.
+     *
+     * XML Signature does not allow to add a signature of the whole document to
+     * a document that has one made with only the enveloped transform: the
+     * transform removes only the signature that contains it, so the new
+     * signature would make invalid the first one (section 6.6.3 of XML
+     * Signature 1.1). To have several signatures of the whole document, each
+     * one is made with `references` and an `xpath` transform that leaves out
+     * the signatures, as in `not(ancestor-or-self::dsig:Signature)` or with
+     * `here()`.
      */
     public function signXml(
         XmlDocumentInterface|string $xml,
@@ -138,9 +150,19 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         // The data of the reference of the signature, when it is the short form
         // of one reference. It is made over the document as it is, before the
         // signature is in it.
-        $legacyData = $settings->references === null
-            ? $this->getReferenceData($doc, $settings->reference)
-            : null;
+        $legacyData = null;
+        if ($settings->references === null) {
+            if (empty($settings->reference)) {
+                // The signature of the whole document replaces the ones that
+                // the document has as children of the root, which sign the
+                // whole document too. The signatures that are inside of other
+                // elements are part of the document and they are digested.
+                $this->removeEnvelopingSignatures($doc);
+                $legacyData = $doc->C14N();
+            } else {
+                $legacyData = $this->getReferenceData($doc, $settings->reference);
+            }
+        }
 
         // Add the placeholder of the signature, where the XML signature goes.
         $name = 'DerafuSignature' . bin2hex(random_bytes(8));
@@ -192,6 +214,23 @@ final class SignatureGenerator implements SignatureGeneratorInterface
         ?string $reference = null
     ): string {
         return base64_encode(sha1($this->getReferenceData($doc, $reference), true));
+    }
+
+    /**
+     * Removes from the document the signatures that are children of the root
+     * element, which are the ones of the whole document.
+     *
+     * The document is the one that `signXml()` loaded from the text that it
+     * received, so the document of the caller is not changed.
+     */
+    private function removeEnvelopingSignatures(XmlDocumentInterface $doc): void
+    {
+        $root = $doc->requireDocumentElement();
+        foreach (SignatureElements::find($doc) as $signature) {
+            if ($signature->parentNode === $root) {
+                $root->removeChild($signature);
+            }
+        }
     }
 
     /**

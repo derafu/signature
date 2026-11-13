@@ -72,6 +72,110 @@ final class SignatureServiceDetailsTest extends TestCase
         return (int) preg_match_all('~<Signature[ >]~', $xml);
     }
 
+    public function testASignatureOfTheWholeDocumentReplacesTheOneThatTheDocumentHas(): void
+    {
+        $once = $this->service->signXml('<r><a>1</a></r>', $this->certificate);
+
+        $twice = $this->service->signXml($once, $this->certificate);
+
+        $this->assertSame(1, $this->countSignatures($once));
+        $this->assertSame(1, $this->countSignatures($twice));
+        $results = $this->service->validateXml($twice);
+        $this->assertCount(1, $results);
+        $this->assertTrue($results[0]->isValid());
+    }
+
+    public function testTheDocumentThatIsSignedAgainIsNotChanged(): void
+    {
+        $doc = new XmlDocument();
+        $doc->loadXml($this->service->signXml('<r><a>1</a></r>', $this->certificate));
+        $before = $doc->saveXml();
+
+        $signed = $this->service->signXml($doc, $this->certificate);
+
+        $this->assertSame($before, $doc->saveXml());
+        $this->assertSame(1, $this->countSignatures($signed));
+        $this->assertTrue($this->service->validateXml($signed)[0]->isValid());
+    }
+
+    public function testTheSignaturesInsideOfOtherElementsAreKept(): void
+    {
+        $inner = $this->service->signXml(
+            '<r><set><d ID="D1"><a>1</a></d></set></r>',
+            $this->certificate,
+            [
+                'reference' => 'D1',
+                'signature_location' => ['xpath' => '/r/set'],
+            ]
+        );
+
+        $signed = $this->service->signXml($inner, $this->certificate);
+
+        $this->assertSame(2, $this->countSignatures($signed));
+        $this->assertLessThan(strpos($signed, '</set>'), strpos($signed, '<Signature'));
+        $results = $this->service->validateXml($signed);
+        $this->assertCount(2, $results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
+    }
+
+    public function testTheSignatureOfTheWholeDocumentIsValidatedWithoutItselfWhenTheDocumentHasOtherSignatures(): void
+    {
+        $inner = $this->service->signXml(
+            '<r><set><d ID="D1"><a>1</a></d></set></r>',
+            $this->certificate,
+            ['reference' => 'D1', 'signature_location' => ['xpath' => '/r/set']]
+        );
+        $signed = $this->service->signXml($inner, $this->certificate);
+
+        $changed = str_replace('<a>1</a>', '<a>2</a>', $signed);
+
+        $results = $this->service->validateXml($changed);
+        $this->assertFalse($results[0]->isValid());
+        $this->assertFalse($results[1]->isValid());
+    }
+
+    public function testTheSignaturesOfAnElementAreKeptWhenTheSignatureHasAReference(): void
+    {
+        $xml = '<r><d ID="D1"><a>1</a></d><e ID="E1"><b>2</b></e></r>';
+        $first = $this->service->signXml($xml, $this->certificate, ['reference' => 'D1']);
+
+        $signed = $this->service->signXml($first, $this->certificate, ['reference' => 'E1']);
+
+        $this->assertSame(2, $this->countSignatures($signed));
+        foreach ($this->service->validateXml($signed) as $result) {
+            $this->assertTrue($result->isValid());
+        }
+    }
+
+    /**
+     * A document with several signatures of the whole document needs that each
+     * one leaves out the signatures (section 6.6.3 of XML Signature 1.1): with
+     * only the enveloped transform, the second would make the first invalid.
+     */
+    public function testSeveralSignaturesOfTheWholeDocumentThatLeaveOutTheSignaturesAreValid(): void
+    {
+        $options = ['references' => [[
+            'uri' => '',
+            'transforms' => [[
+                'type' => 'xpath',
+                'expression' => 'not(ancestor-or-self::dsig:Signature)',
+                'namespaces' => ['dsig' => 'http://www.w3.org/2000/09/xmldsig#'],
+            ]],
+        ]]];
+        $first = $this->service->signXml('<r><a>1</a></r>', $this->certificate, $options);
+
+        $signed = $this->service->signXml($first, $this->certificate, $options);
+
+        $this->assertSame(2, $this->countSignatures($signed));
+        $results = $this->service->validateXml($signed);
+        $this->assertCount(2, $results);
+        foreach ($results as $result) {
+            $this->assertTrue($result->isValid());
+        }
+    }
+
     public function testAnElementWithTheNameOfThePlaceholderIsKept(): void
     {
         $signed = $this->service->signXml('<r><DerafuSignature/><a/></r>', $this->certificate);
